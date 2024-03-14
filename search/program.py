@@ -180,6 +180,7 @@ def rotate(tetronimo: PlaceAction, times: int) -> PlaceAction:
     return rotated
 
 
+# TODO: account for previously placed pieces when considering valid coords
 def get_valid_adjacents(board: dict[Coord, PlayerColor], coord: Coord) -> list[Coord]:
     """
     Get valid adjacent coordinates from a given coordinate.
