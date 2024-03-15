@@ -81,15 +81,14 @@ def a_star_search(
 ) -> list[Coord] | None:
     """
     Perform an A* search to find the shortest path from start to goal.
-    """
-    # TODO: add tetrinimos to path (add PlaceActions to path, not just coords)
-    
+    """    
     board_state = board
     open_set = []
     closest_coord = find_closest_coord(start, goal)
 
     heapq.heappush(open_set, (0, closest_coord))  # heap is initialized with start node
     came_from = {closest_coord: None}
+    came_from_piece = {closest_coord: start}
     g_score = {closest_coord: 0}
     f_score = {closest_coord: heuristic(closest_coord, goal)}
 
@@ -97,6 +96,8 @@ def a_star_search(
         _, current = heapq.heappop(open_set)  # node with lowest f_score is selected
 
         if current == goal:
+            path = reconstruct_path(came_from, current)
+            print(reconstruct_pieces(path, came_from_piece))
             return reconstruct_path(came_from, current)
 
         for adjacent_coord in get_valid_adjacents(board_state, current):
@@ -105,6 +106,7 @@ def a_star_search(
 
                 if move_coord not in came_from:  # potential issues here, closest coord in goal may overlap with other pieces - but list is not hashable (need different way to hash?) | actually maybe not a problem, as only need piece to reach certain coord (multiple ways to reach same coord)
                     came_from[move_coord] = current
+                    came_from_piece[move_coord] = move
                     g_score[move_coord] = g_score[current]+ heuristic(current, move_coord)
                     f_score[move_coord] = g_score[move_coord] + heuristic(move_coord, goal)
                     heapq.heappush(open_set, (f_score[move_coord], move_coord))
@@ -213,7 +215,7 @@ def heuristic(a: Coord, b: Coord) -> int:
     return abs(a.r - b.r) + abs(a.c - b.c)
 
 
-def reconstruct_path(came_from, current) -> list[Coord]:
+def reconstruct_path(came_from, current: Coord) -> list[Coord]:
     """
     Reconstruct the path from the start to the current node.
     """
@@ -222,6 +224,19 @@ def reconstruct_path(came_from, current) -> list[Coord]:
         current = came_from[current]
         total_path.append(current)
     return total_path[::-1]
+
+def reconstruct_pieces(coords: list[Coord], came_from_piece: dict[Coord, PlaceAction]): #-> list[PlaceAction]:
+    """
+    Reconstruct pieces used for path
+    """
+    pieces = []
+    for coord in coords:
+        if coord != None:
+            #print(coord)
+            piece = came_from_piece[coord]
+            print(piece)
+            pieces.append(piece.coords)
+    return pieces
 
 
 # check all 19 possible moves, check if valid, if valid, add to list of possible moves
