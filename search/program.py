@@ -84,10 +84,10 @@ def a_star_search(
     board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coord) -> list[PlaceAction] | None:
     """
     Perform an A* search to find the shortest path from start to goal.
-    """    
-    board_state = board
+    """
     open_set = []
     closest_coord = find_closest_coord(start, goal)
+    # TODO: analyse if best to start from closest coord (need to add to open_set?)
 
     heapq.heappush(open_set, (0, closest_coord))  # heap is initialized with start node
     came_from = {closest_coord: None}
@@ -98,45 +98,52 @@ def a_star_search(
     while open_set:
         _, current = heapq.heappop(open_set)  # node with lowest f_score is selected
         
-        #if current == goal:
-            #return reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)[1:]
-        # TODO: put goal as piece adjacent to goal, not on goal
         for coord in came_from_piece[current].coords:
             if coord is None:
                 continue
-            for adjacent_coord in get_invalid_adjacents(board_state, coord):
+            for adjacent_coord in get_invalid_adjacents(board, coord):
                 if (adjacent_coord == goal):
-                    path = reconstruct_path(came_from, current)
-                    pieces = reconstruct_pieces(path, came_from_piece)
-                    #print(render_board(perform_moves(board_state, reconstruct_pieces(reconstruct_path(came_from, move_coord), came_from_piece)), goal, ansi=True))
+                    pieces = reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)
+                    # print solution
+                    for piece in pieces:
+                        perform_move(board, piece)
+                    print("\nSOLUTION:")
+                    print(render_board(board, goal, ansi=True))
                     return pieces[1:]
 
-        for adjacent_coord in get_valid_adjacents(board_state, current):
-            for move in get_valid_moves(board_state, adjacent_coord):
+        for adjacent_coord in get_valid_adjacents(board, current):
+            for move in get_valid_moves(board, adjacent_coord, reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)):
                 move_coord = find_closest_coord(move, goal)
 
-                if move_coord not in came_from:  # potential issues here, closest coord in goal may overlap with other pieces - but list is not hashable (need different way to hash?) | actually maybe not a problem, as only need piece to reach certain coord (multiple ways to reach same coord)
+                # can reach same closest coord with different pieces, so need to check if coord already in came_from
+                if move_coord not in came_from:
                     came_from[move_coord] = current
                     came_from_piece[move_coord] = move
                     g_score[move_coord] = g_score[current] + heuristic(current, move_coord)
                     f_score[move_coord] = g_score[move_coord] + heuristic(move_coord, goal)
                     heapq.heappush(open_set, (f_score[move_coord], move_coord))
                     
-                    #testing
-                    print(render_board(perform_moves(board_state, reconstruct_pieces(reconstruct_path(came_from, move_coord), came_from_piece)), goal, ansi=True))
-                    
-                    #print(move_coord, f_score[move_coord])
+                    # print last two pieces
+                    board_temp = board.copy()
+                    if (came_from_piece[move_coord] != None):
+                        perform_move(board_temp, came_from_piece[current])
+                    print(render_board(perform_move(board_temp, move), goal, ansi=True))
     return None  # path not found
 
 
-def get_valid_moves(board: dict[Coord, PlayerColor], coord: Coord) -> list[PlaceAction]:
+def get_valid_moves(board: dict[Coord, PlayerColor], coord: Coord, prev_moves: list[PlaceAction]) -> list[PlaceAction]:
     """
     Get valid PieceActions from a given coordinate.
     """
     valid_moves = []
+    board_temp = board.copy()
+    # get all previous pieces, put on temp board
+    for move in prev_moves:
+        perform_move(board_temp, move)
+    
     # for each piece, check if valid, if valid, add to list of possible moves
     for move in get_moves(coord):
-        if is_valid(board, move):
+        if is_valid(board_temp, move):
             valid_moves.append(move)
 
     #print(valid_moves)
@@ -146,20 +153,6 @@ def get_valid_moves(board: dict[Coord, PlayerColor], coord: Coord) -> list[Place
 def is_valid(board: dict[Coord, PlayerColor], piece: PlaceAction) -> bool:
     """
     Check if the piece can be placed on the board.
-    """
-    """
-    for coord in piece.coords:
-        if coord in board:
-            return False
-    """
-    """
-    # TODO: fix this, idk why this works - code above should instead work really
-    for coord in list(piece.coords):
-        try:
-            if board[coord]:
-                return False
-        except:
-            return True
     """
     for coord in piece.coords:
         if board.get(coord, None):
@@ -212,12 +205,11 @@ def get_valid_adjacents(board: dict[Coord, PlayerColor], coord: Coord) -> list[C
     Get valid adjacent coordinates from a given coordinate (empty adjacent coords).
     """
     valid_adjacents = []
-    #for direction in [Direction.Up, Direction.Down, Direction.Left, Direction.Right]:
-    for direction in [Coord(0, 10), Coord(0, 1), Coord(10, 0), Coord(1, 0)]:
+    for direction in [Coord(0, 10), Coord(0, 1), Coord(10, 0), Coord(1, 0)]: # up, down, left, right
         adjacent = coord + direction
         if not board.get(adjacent, None):
             valid_adjacents.append(adjacent)
-    #print("valid:", valid_adjacents)
+    print("valid:", valid_adjacents)
     return valid_adjacents
 
 def get_invalid_adjacents(board: dict[Coord, PlayerColor], coord: Coord) -> list[Coord]:
@@ -225,12 +217,11 @@ def get_invalid_adjacents(board: dict[Coord, PlayerColor], coord: Coord) -> list
     Get invalid adjacent coordinates from a given coordinate (adjacent coords filled by pieces).
     """
     invalid_adjacents = []
-    #for direction in [Direction.Up, Direction.Down, Direction.Left, Direction.Right]:
-    for direction in [Coord(0, 10), Coord(0, 1), Coord(10, 0), Coord(1, 0)]:
+    for direction in [Coord(0, 10), Coord(0, 1), Coord(10, 0), Coord(1, 0)]: # up, down, left, right
         adjacent = coord + direction
         if board.get(adjacent, None):
             invalid_adjacents.append(adjacent)
-    #print("invalid:", invalid_adjacents)
+    print("invalid:", invalid_adjacents)
     return invalid_adjacents
 
 
@@ -254,6 +245,12 @@ def heuristic(a: Coord, b: Coord) -> int:
     # TODO: check if works with Coord arithmetic
     return abs(a.r - b.r) + abs(a.c - b.c)
 
+def heuristic_piece(piece: PlaceAction, goal: Coord) -> int:
+    """
+    Calculate the Manhattan distance between a piece and the goal.
+    """
+    return sum([heuristic(coord, goal) for coord in piece.coords if coord != None])
+
 
 def reconstruct_path(came_from, current: Coord) -> list[Coord]:
     """
@@ -276,13 +273,12 @@ def reconstruct_pieces(coords: list[Coord], came_from_piece: dict[Coord, PlaceAc
             pieces.append(piece)
     return pieces
 
-def perform_moves(board: dict[Coord, PlayerColor], moves: list[PlaceAction]) -> dict[Coord, PlayerColor]:
+def perform_move(board: dict[Coord, PlayerColor], move: PlaceAction) -> dict[Coord, PlayerColor]:
     """
     Perform a list of PlaceActions on the board.
     """
-    for move in moves:
-        for coord in move.coords:
-            board[coord] = PlayerColor.RED
+    for coord in move.coords:
+        board[coord] = PlayerColor.RED
     return board
 
 
