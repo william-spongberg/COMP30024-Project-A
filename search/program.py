@@ -99,8 +99,11 @@ def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coo
     came_from: dict[Coord, Coord | None]
     came_from_piece: dict[Coord | None, PlaceAction]
     
+    generated_nodes = 0
+    expanded_nodes = 0
+    duplicated_nodes = 0
+    
     closest_coord = find_closest_coord(start, goal)
-
     heapq.heappush(open_set, (0, closest_coord))  # heap is initialized with start node
     came_from = {closest_coord: None}
     came_from_piece = {closest_coord: start}
@@ -109,11 +112,13 @@ def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coo
 
     while open_set:
         _, current = heapq.heappop(open_set)  # node with lowest f_score is selected
+        expanded_nodes += 1
 
         # for each coord of a piece, find adjacent coord, find valid move to be played, if valid, add to list of possible moves
         for coord in came_from_piece[current].coords:
             if coord is None:
                 continue
+            
             for adjacent_coord in get_invalid_adjacents(board, coord):
                 if (adjacent_coord == goal):
                     pieces = reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)
@@ -128,6 +133,7 @@ def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coo
                     move_coord = find_closest_coord(move, goal)
 
                     if move not in came_from_piece and move_coord not in came_from:
+                        generated_nodes += 1
                         came_from[move_coord] = current
                         came_from_piece[move_coord] = move
                         g_score[move_coord] = g_score[current] + heuristic_piece(came_from_piece[current], current, move_coord, came_from)
@@ -140,6 +146,12 @@ def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coo
                             perform_move(board_temp, came_from_piece[current])
                         print("coord:", move_coord, "h:", heuristic_piece(came_from_piece[current], current, move_coord, came_from), "+", heuristic_piece(move, move_coord, goal, came_from))
                         print(render_board(perform_move(board_temp, move), goal, ansi=True))
+                        print("generated nodes:", generated_nodes)
+                        print("expanded nodes:", expanded_nodes)
+                        print("duplicate nodes:", duplicated_nodes)
+                    else:
+                        duplicated_nodes += 1
+                        
     return None  # path not found
 
 def get_valid_moves(board: dict[Coord, PlayerColor], tetronimos: list[PlaceAction], coord: Coord, prev_moves: list[PlaceAction]) -> list[PlaceAction]:
