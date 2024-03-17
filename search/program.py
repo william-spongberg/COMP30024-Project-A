@@ -87,13 +87,14 @@ def a_star_search(
     """
     open_set = []
     closest_coord = find_closest_coord(start, goal)
-    # TODO: analyse if best to start from closest coord (need to add to open_set?)
 
     heapq.heappush(open_set, (0, closest_coord))  # heap is initialized with start node
     came_from = {closest_coord: None}
     came_from_piece = {closest_coord: start}
     g_score = {closest_coord: 0}
     f_score = {closest_coord: heuristic(closest_coord, goal)}
+    
+    tetronimos = get_tetronimos()
 
     while open_set:
         _, current = heapq.heappop(open_set)  # node with lowest f_score is selected
@@ -112,7 +113,7 @@ def a_star_search(
                     return pieces[1:]
 
         for adjacent_coord in get_valid_adjacents(board, current):
-            for move in get_valid_moves(board, adjacent_coord, reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)):
+            for move in get_valid_moves(board, tetronimos, adjacent_coord, reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)):
                 move_coord = find_closest_coord(move, goal)
 
                 if move_coord not in came_from:
@@ -131,7 +132,7 @@ def a_star_search(
     return None  # path not found
 
 
-def get_valid_moves(board: dict[Coord, PlayerColor], coord: Coord, prev_moves: list[PlaceAction]) -> list[PlaceAction]:
+def get_valid_moves(board: dict[Coord, PlayerColor], tetronimos: list[PlaceAction], coord: Coord, prev_moves: list[PlaceAction]) -> list[PlaceAction]:
     """
     Get valid PieceActions from a given coordinate.
     """
@@ -142,7 +143,7 @@ def get_valid_moves(board: dict[Coord, PlayerColor], coord: Coord, prev_moves: l
         perform_move(board_temp, move)
     
     # for each piece, check if valid, if valid, add to list of possible moves
-    for move in get_moves(coord):
+    for move in get_moves(coord, tetronimos):
         if is_valid(board_temp, move):
             valid_moves.append(move)
 
@@ -159,17 +160,17 @@ def is_valid(board: dict[Coord, PlayerColor], piece: PlaceAction) -> bool:
             return False
     return True
 
-
-def get_moves(coord: Coord) -> list[PlaceAction]:
-    # TODO: move to top of search method, keep defined as global
-    # define tetronimo shapes
+def get_tetronimos() -> list[PlaceAction]:
+    """
+    Get all possible tetronimos.
+    """
     tetronimos = [
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(2, 0), Coord(3, 0)),  # I (straight)
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(2, 0), Coord(1, 1)),  # T (T-shape)
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(1, 1), Coord(2, 1)),  # S (S-shape)
         PlaceAction(Coord(2, 0), Coord(0, 1), Coord(1, 1), Coord(2, 1)),  # L (L-shape)
     ]
-
+    
     # rotate each tetronimo 4 times
     rotated_tetronimos = []
     for tetronimo in tetronimos:
@@ -178,10 +179,13 @@ def get_moves(coord: Coord) -> list[PlaceAction]:
     
     # add cube
     rotated_tetronimos.append(PlaceAction(Coord(0, 0), Coord(1, 0), Coord(0, 1), Coord(1, 1)))
+    return rotated_tetronimos
 
+
+def get_moves(coord: Coord, tetronimos: list[PlaceAction]) -> list[PlaceAction]:
     # get all possible tetronimo moves from a given coordinate
     list_of_moves = []
-    for tetronimo in rotated_tetronimos:
+    for tetronimo in tetronimos:
         move = [coord + Coord(x, y) for x, y in list(tetronimo.coords)]
         move = PlaceAction(*move)
         list_of_moves.append(move)
@@ -229,15 +233,17 @@ def find_closest_coord(piece: PlaceAction, goal: Coord) -> Coord:
     """
     Find the closest coordinate to the goal from a list of coordinates.
     """
-    closest = list(piece.coords)[1] # TODO: fix this
+    closest = list(piece.coords)[0]
     for coord in list(piece.coords):
         if coord == None:
             continue
-        if heuristic(coord, goal) < heuristic(closest, goal):
+        if closest == None:
+            closest = coord
+        elif heuristic(coord, goal) < heuristic(closest, goal):
             closest = coord
     return closest
 
-
+# TODO: make more efficient heuristic
 def heuristic(a: Coord, b: Coord) -> int:
     """
     Calculate the Manhattan distance between two points.
