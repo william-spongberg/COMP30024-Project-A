@@ -90,13 +90,15 @@ def search(board: dict[Coord, PlayerColor], target: Coord) -> list[PlaceAction] 
     ]
     """
 
-def a_star_search(
-    board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coord) -> list[PlaceAction] | None:
+def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coord) -> list[PlaceAction] | None:
     """
     Perform an A* search to find the shortest path from start to goal.
     """
-    open_set = []
     tetronimos = get_tetronimos()
+    open_set = []
+    came_from: dict[Coord, Coord | None]
+    came_from_piece: dict[Coord | None, PlaceAction]
+    
     closest_coord = find_closest_coord(start, goal)
 
     heapq.heappush(open_set, (0, closest_coord))  # heap is initialized with start node
@@ -107,7 +109,8 @@ def a_star_search(
 
     while open_set:
         _, current = heapq.heappop(open_set)  # node with lowest f_score is selected
-        
+
+        # for each coord of a piece, find adjacent coord, find valid move to be played, if valid, add to list of possible moves
         for coord in came_from_piece[current].coords:
             if coord is None:
                 continue
@@ -120,24 +123,23 @@ def a_star_search(
                     print("\nSOLUTION:")
                     print(render_board(board, goal, ansi=True))
                     return pieces[1:]
+            for adjacent_coord in get_valid_adjacents(board, coord):
+                for move in get_valid_moves(board, tetronimos, adjacent_coord, reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)):
+                    move_coord = find_closest_coord(move, goal)
 
-        for adjacent_coord in get_valid_adjacents(board, current):
-            for move in get_valid_moves(board, tetronimos, adjacent_coord, reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)):
-                move_coord = find_closest_coord(move, goal)
-
-                if move_coord not in came_from:
-                    came_from[move_coord] = current
-                    came_from_piece[move_coord] = move
-                    g_score[move_coord] = g_score[current] + heuristic_piece(came_from_piece[current], current, move_coord, came_from)
-                    f_score[move_coord] = g_score[move_coord] + heuristic_piece(move, move_coord, goal, came_from)
-                    heapq.heappush(open_set, (f_score[move_coord], move_coord))
-                    
-                    # print last two pieces
-                    board_temp = board.copy()
-                    if (came_from_piece[move_coord] != None):
-                        perform_move(board_temp, came_from_piece[current])
-                    print("coord:", move_coord, "h:", heuristic_piece(came_from_piece[current], current, move_coord, came_from), "+", heuristic_piece(move, move_coord, goal, came_from))
-                    print(render_board(perform_move(board_temp, move), goal, ansi=True))
+                    if move not in came_from_piece:
+                        came_from[move_coord] = current
+                        came_from_piece[move_coord] = move
+                        g_score[move_coord] = g_score[current] + heuristic_piece(came_from_piece[current], current, move_coord, came_from)
+                        f_score[move_coord] = g_score[move_coord] + heuristic_piece(move, move_coord, goal, came_from)
+                        heapq.heappush(open_set, (f_score[move_coord], move_coord))
+                        
+                        # print last two pieces
+                        board_temp = board.copy()
+                        if (came_from_piece[move_coord] != None):
+                            perform_move(board_temp, came_from_piece[current])
+                        #print("coord:", move_coord, "h:", heuristic_piece(came_from_piece[current], current, move_coord, came_from), "+", heuristic_piece(move, move_coord, goal, came_from))
+                        #print(render_board(perform_move(board_temp, move), goal, ansi=True))
     return None  # path not found
 
 def get_valid_moves(board: dict[Coord, PlayerColor], tetronimos: list[PlaceAction], coord: Coord, prev_moves: list[PlaceAction]) -> list[PlaceAction]:
@@ -175,7 +177,8 @@ def get_tetronimos() -> list[PlaceAction]:
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(2, 0), Coord(3, 0)),  # I (straight)
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(2, 0), Coord(1, 1)),  # T (T-shape)
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(1, 1), Coord(2, 1)),  # S (S-shape)
-        PlaceAction(Coord(2, 0), Coord(0, 1), Coord(1, 1), Coord(2, 1)),  # L (L-shape)
+        PlaceAction(Coord(0, 0), Coord(0, 1), Coord(1, 1), Coord(2, 1)),  # J (J-shape)
+        PlaceAction(Coord(0, 0), Coord(0, 1), Coord(1, 0), Coord(2, 0)),  # L (L-shape)
     ]
     
     # rotate each tetronimo 4 times
@@ -218,7 +221,7 @@ def get_valid_adjacents(board: dict[Coord, PlayerColor], coord: Coord) -> list[C
     for adjacent in adjacents:
         if not board.get(adjacent, None):
             valid_adjacents.append(adjacent)    
-    print("valid:", valid_adjacents)
+    #print("valid:", valid_adjacents)
     return valid_adjacents
 
 def get_invalid_adjacents(board: dict[Coord, PlayerColor], coord: Coord) -> list[Coord]:
@@ -231,7 +234,7 @@ def get_invalid_adjacents(board: dict[Coord, PlayerColor], coord: Coord) -> list
     for adjacent in adjacents:
         if board.get(adjacent, None):
             invalid_adjacents.append(adjacent)    
-    print("invalid:", invalid_adjacents)
+    #print("invalid:", invalid_adjacents)
     return invalid_adjacents
 
 def find_closest_coord(piece: PlaceAction, goal: Coord) -> Coord:
@@ -262,7 +265,7 @@ def heuristic_piece(piece: PlaceAction, coord: Coord, goal: Coord, came_from) ->
     manhattan_distance = sum([heuristic(coord, goal) for coord in piece.coords if coord != None])
     return manhattan_distance + count_pieces(came_from, coord)
 
-def count_pieces(came_from, coord: Coord) -> int:
+def count_pieces(came_from: dict[Coord, Coord | None], coord: Coord | None) -> int:
     """
     Count the number of pieces in the path to the current node.
     """
@@ -272,7 +275,7 @@ def count_pieces(came_from, coord: Coord) -> int:
         pieces += 1
     return pieces
         
-def reconstruct_path(came_from, current: Coord) -> list[Coord]:
+def reconstruct_path(came_from: dict[Coord, Coord | None], current: Coord | None) -> list[Coord | None]:
     """
     Reconstruct the path from the start to the current node.
     """
@@ -282,7 +285,7 @@ def reconstruct_path(came_from, current: Coord) -> list[Coord]:
         total_path.append(current)
     return total_path[::-1]
 
-def reconstruct_pieces(coords: list[Coord], came_from_piece: dict[Coord, PlaceAction]) -> list[PlaceAction]:
+def reconstruct_pieces(coords: list[Coord | None], came_from_piece: dict[Coord | None, PlaceAction]) -> list[PlaceAction]:
     """
     Reconstruct pieces used for path
     """
