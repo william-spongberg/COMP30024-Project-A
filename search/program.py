@@ -127,7 +127,7 @@ def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coo
                 for move in get_valid_moves(board, tetronimos, adjacent_coord, reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)):
                     move_coord = find_closest_coord(move, goal)
 
-                    if move not in came_from_piece:
+                    if move not in came_from_piece and move_coord not in came_from:
                         came_from[move_coord] = current
                         came_from_piece[move_coord] = move
                         g_score[move_coord] = g_score[current] + heuristic_piece(came_from_piece[current], current, move_coord, came_from)
@@ -138,8 +138,8 @@ def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coo
                         board_temp = board.copy()
                         if (came_from_piece[move_coord] != None):
                             perform_move(board_temp, came_from_piece[current])
-                        #print("coord:", move_coord, "h:", heuristic_piece(came_from_piece[current], current, move_coord, came_from), "+", heuristic_piece(move, move_coord, goal, came_from))
-                        #print(render_board(perform_move(board_temp, move), goal, ansi=True))
+                        print("coord:", move_coord, "h:", heuristic_piece(came_from_piece[current], current, move_coord, came_from), "+", heuristic_piece(move, move_coord, goal, came_from))
+                        print(render_board(perform_move(board_temp, move), goal, ansi=True))
     return None  # path not found
 
 def get_valid_moves(board: dict[Coord, PlayerColor], tetronimos: list[PlaceAction], coord: Coord, prev_moves: list[PlaceAction]) -> list[PlaceAction]:
