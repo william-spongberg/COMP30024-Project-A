@@ -5,6 +5,8 @@ from .core import PlayerColor, Coord, PlaceAction, Direction
 from .utils import render_board
 import heapq
 
+BOARD_N = 11
+
 
 def search(board: dict[Coord, PlayerColor], target: Coord) -> list[PlaceAction] | None:
     """
@@ -53,7 +55,7 @@ def search(board: dict[Coord, PlayerColor], target: Coord) -> list[PlaceAction] 
     # a_star_search
     path = a_star_search(board, start, target)
     #print(path)
-    
+      
     return path
     
     # TESTING #
@@ -65,6 +67,15 @@ def search(board: dict[Coord, PlayerColor], target: Coord) -> list[PlaceAction] 
     crds_l = list(crds_c)
     print(crds_l)
     print(crds_l[0])
+    """
+    """
+    coord = Coord(0,5)
+    up = coord.up()
+    #down = coord.down()
+    #left = coord.left()
+    #right = coord.right()
+    c = Coord(up.r, up.c)
+    print(c)
     """
 
     # Here we're returning "hardcoded" actions as an example of the expected
@@ -86,6 +97,7 @@ def a_star_search(
     Perform an A* search to find the shortest path from start to goal.
     """
     open_set = []
+    tetronimos = get_tetronimos()
     closest_coord = find_closest_coord(start, goal)
 
     heapq.heappush(open_set, (0, closest_coord))  # heap is initialized with start node
@@ -93,8 +105,6 @@ def a_star_search(
     came_from_piece = {closest_coord: start}
     g_score = {closest_coord: 0}
     f_score = {closest_coord: heuristic(closest_coord, goal)}
-    
-    tetronimos = get_tetronimos()
 
     while open_set:
         _, current = heapq.heappop(open_set)  # node with lowest f_score is selected
@@ -199,7 +209,7 @@ def rotate(tetronimo: PlaceAction, times: int) -> PlaceAction:
     rotated = list(tetronimo.coords)
     for _ in range(times):
         # rotated = [Coord(-y, x) for x, y in rotated] # rotate 90 degrees clockwise (x, y) -> (-y, x)
-        rotated = [(Coord(y, x) - Coord((2 * y) % 11, 0)) for x, y in rotated]
+        rotated = [(Coord(y, x) - Coord((2 * y) % BOARD_N, 0)) for x, y in rotated]
     rotated = PlaceAction(*rotated)
     return rotated
 
@@ -209,10 +219,11 @@ def get_valid_adjacents(board: dict[Coord, PlayerColor], coord: Coord) -> list[C
     Get valid adjacent coordinates from a given coordinate (empty adjacent coords).
     """
     valid_adjacents = []
-    for direction in [Coord(0, 10), Coord(0, 1), Coord(10, 0), Coord(1, 0)]: # up, down, left, right
-        adjacent = coord + direction
+    directions = [coord.up(), coord.down(), coord.left(), coord.right()]
+    adjacents = [Coord(dir.r, dir.c) for dir in directions]
+    for adjacent in adjacents:
         if not board.get(adjacent, None):
-            valid_adjacents.append(adjacent)
+            valid_adjacents.append(adjacent)    
     print("valid:", valid_adjacents)
     return valid_adjacents
 
@@ -243,12 +254,12 @@ def find_closest_coord(piece: PlaceAction, goal: Coord) -> Coord:
             closest = coord
     return closest
 
-# TODO: make more efficient heuristic
+# TODO: make more efficient heuristic/s
 def heuristic(a: Coord, b: Coord) -> int:
     """
     Calculate the Manhattan distance between two points.
     """
-    return min(abs(a.r - b.r), 11 - abs(a.r - b.r)) + min(abs(a.c - b.c), 11 - abs(a.c - b.c))
+    return min(abs(a.r - b.r), BOARD_N - abs(a.r - b.r)) + min(abs(a.c - b.c), BOARD_N - abs(a.c - b.c))
 
 def heuristic_piece(piece: PlaceAction, goal: Coord) -> int:
     """
