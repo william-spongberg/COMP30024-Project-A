@@ -115,7 +115,6 @@ def a_star_search(
             for move in get_valid_moves(board, adjacent_coord, reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)):
                 move_coord = find_closest_coord(move, goal)
 
-                # can reach same closest coord with different pieces, so need to check if coord already in came_from
                 if move_coord not in came_from:
                     came_from[move_coord] = current
                     came_from_piece[move_coord] = move
@@ -127,6 +126,7 @@ def a_star_search(
                     board_temp = board.copy()
                     if (came_from_piece[move_coord] != None):
                         perform_move(board_temp, came_from_piece[current])
+                    print("coord:", move_coord, "h:", heuristic(current, move_coord), "+", heuristic(move_coord, goal))
                     print(render_board(perform_move(board_temp, move), goal, ansi=True))
     return None  # path not found
 
@@ -195,12 +195,11 @@ def rotate(tetronimo: PlaceAction, times: int) -> PlaceAction:
     rotated = list(tetronimo.coords)
     for _ in range(times):
         # rotated = [Coord(-y, x) for x, y in rotated] # rotate 90 degrees clockwise (x, y) -> (-y, x)
-        rotated = [(Coord(y, x) - Coord((2 * y) % 11, 0)) for x, y in rotated] # TODO: fix this arithmetic
+        rotated = [(Coord(y, x) - Coord((2 * y) % 11, 0)) for x, y in rotated]
     rotated = PlaceAction(*rotated)
     return rotated
 
 
-# TODO: account for previously placed pieces when considering valid coords
 def get_valid_adjacents(board: dict[Coord, PlayerColor], coord: Coord) -> list[Coord]:
     """
     Get valid adjacent coordinates from a given coordinate (empty adjacent coords).
@@ -243,8 +242,7 @@ def heuristic(a: Coord, b: Coord) -> int:
     """
     Calculate the Manhattan distance between two points.
     """
-    # TODO: check if works with Coord arithmetic
-    return abs(a.r - b.r) + abs(a.c - b.c)
+    return min(abs(a.r - b.r), 11 - abs(a.r - b.r)) + min(abs(a.c - b.c), 11 - abs(a.c - b.c))
 
 def heuristic_piece(piece: PlaceAction, goal: Coord) -> int:
     """
