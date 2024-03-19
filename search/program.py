@@ -8,7 +8,7 @@ import heapq
 BOARD_N = 11
 
 
-def search(board: dict[Coord, PlayerColor], target: Coord) -> list[PlaceAction] | None:
+def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | None:
     """
     This is the entry point for your submission. You should modify this
     function to solve the search problem discussed in the Part A specification.
@@ -28,7 +28,7 @@ def search(board: dict[Coord, PlayerColor], target: Coord) -> list[PlaceAction] 
     # The render_board() function is handy for debugging. It will print out a
     # board state in a human-readable format. If your terminal supports ANSI
     # codes, set the `ansi` flag to True to print a colour-coded version!
-    print(render_board(board, target, ansi=True))
+    print(render_board(board, goal, ansi=True))
 
     # (your solution goes here)
 
@@ -50,11 +50,36 @@ def search(board: dict[Coord, PlayerColor], target: Coord) -> list[PlaceAction] 
     start = PlaceAction(*start)     
     
     print("start:", start)
-    print("goal:", target)
+    print("goal:", goal)
 
     # a_star_search
-    path = a_star_search(board, start, target)
+    #path = a_star_search(board, start, goal)
     #print(path)
+    
+    # change goal as needed? e.g. change to the closest row/col line
+    # decide which row/col line is best -> most filled, closest to start
+    
+    # path find from coord to coord of line, saving path up to last piece in pieces variable
+    # different goal-checking method now - not adjacent to goal, but on the line (coords)
+    
+    
+    h_line = contruct_horizontal_line(goal, board)
+    v_line = construct_vertical_line(goal, board)
+    # temp get smaller line
+    line = h_line if len(h_line) < len(v_line) else v_line
+    
+    while line:
+        _, line_coord = find_closest_coords(start, line)
+        line.remove(line_coord)
+        path = a_star_search(board, start, line_coord)
+        if path:
+            start = path[-1]
+        else:
+            break
+        
+    # need to remove line_coords from line as they are covered in a_star
+            
+    # heuristic to fill line or manually fill line?
       
     return path
     
@@ -89,6 +114,7 @@ def search(board: dict[Coord, PlayerColor], target: Coord) -> list[PlaceAction] 
         PlaceAction(Coord(5, 8), Coord(6, 8), Coord(7, 8), Coord(8, 8)),
     ]
     """
+# TODO: path find to row/col line of goal
 
 def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coord) -> list[PlaceAction] | None:
     """
@@ -107,8 +133,8 @@ def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coo
     heapq.heappush(open_set, (0, closest_coord))  # heap is initialized with start node
     came_from = {closest_coord: None}
     came_from_piece = {closest_coord: start}
-    g_score = {closest_coord: 0}
-    f_score = {closest_coord: heuristic_piece(start, closest_coord, goal, came_from)}
+    g = {closest_coord: 0}
+    f = {closest_coord: heuristic_piece(start, closest_coord, goal, came_from)}
 
     while open_set:
         _, current = heapq.heappop(open_set)  # node with lowest f_score is selected
@@ -118,7 +144,16 @@ def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coo
         for coord in came_from_piece[current].coords:
             if coord is None:
                 continue
-            
+            if (coord == goal):
+                pieces = reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)
+                # print solution
+                for piece in pieces:
+                    perform_move(board, piece)
+                print("\nSOLUTION:")
+                print(render_board(board, goal, ansi=True))
+                return pieces[1:]
+            # old adjacent goal checking
+            """
             for adjacent_coord in get_invalid_adjacents(board, coord):
                 if (adjacent_coord == goal):
                     pieces = reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)
@@ -128,6 +163,7 @@ def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coo
                     print("\nSOLUTION:")
                     print(render_board(board, goal, ansi=True))
                     return pieces[1:]
+            """
             for adjacent_coord in get_valid_adjacents(board, coord):
                 for move in get_valid_moves(board, tetronimos, adjacent_coord, reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)):
                     move_coord = find_closest_coord(move, goal)
@@ -136,9 +172,9 @@ def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coo
                         generated_nodes += 1
                         came_from[move_coord] = current
                         came_from_piece[move_coord] = move
-                        g_score[move_coord] = g_score[current] + heuristic_piece(came_from_piece[current], current, move_coord, came_from)
-                        f_score[move_coord] = g_score[move_coord] + heuristic_piece(move, move_coord, goal, came_from)
-                        heapq.heappush(open_set, (f_score[move_coord], move_coord))
+                        g[move_coord] = g[current] + heuristic_piece(came_from_piece[current], current, move_coord, came_from)
+                        f[move_coord] = g[move_coord] + heuristic_piece(move, move_coord, goal, came_from)
+                        heapq.heappush(open_set, (f[move_coord], move_coord))
                         
                         # print last two pieces
                         board_temp = board.copy()
@@ -156,7 +192,7 @@ def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coo
 
 def get_valid_moves(board: dict[Coord, PlayerColor], tetronimos: list[PlaceAction], coord: Coord, prev_moves: list[PlaceAction]) -> list[PlaceAction]:
     """
-    Get valid PieceActions from a given coordinate.
+    Get valid PlaceActions from a given coordinate.
     """
     valid_moves = []
     board_temp = board.copy()
@@ -249,9 +285,34 @@ def get_invalid_adjacents(board: dict[Coord, PlayerColor], coord: Coord) -> list
     #print("invalid:", invalid_adjacents)
     return invalid_adjacents
 
+def find_closest_coords(piece: PlaceAction, line: list[Coord]) -> tuple[Coord, Coord]:
+    # outside min between two coords
+       # inside min for piece
+       # inside min for line
+    
+    # get first non-None coord of piece
+    piece_coord = list(piece.coords)[0]
+    for p in list(piece.coords):
+        if p is None:
+            continue
+        piece_coord = p
+        
+    line_coord = line[0]
+    min_dist = heuristic(piece_coord, line_coord)
+    for l in line:
+        for p in list(piece.coords):
+            if p is None:
+                continue
+            if heuristic(p, l) < min_dist:
+                min_dist = heuristic(p, l)
+                piece_coord = p
+                line_coord = l
+    return piece_coord, line_coord
+                
+
 def find_closest_coord(piece: PlaceAction, goal: Coord) -> Coord:
     """
-    Find the closest coordinate to the goal from a list of coordinates.
+    Find the closest coordinate to the goal from a piece.
     """
     closest = list(piece.coords)[0]
     for coord in list(piece.coords):
@@ -286,6 +347,26 @@ def count_pieces(came_from: dict[Coord, Coord | None], coord: Coord | None) -> i
         coord = came_from[coord]
         pieces += 1
     return pieces
+
+def contruct_horizontal_line(coord: Coord, board: dict[Coord, PlayerColor]) -> list[Coord]:
+    """
+    Construct a horizontal line for a coord.
+    """
+    line = []
+    for i in range(BOARD_N):
+        if not board.get(Coord(coord.r, i), None):
+            line.append(Coord(coord.r, i))
+    return line
+
+def construct_vertical_line(coord: Coord, board: dict[Coord, PlayerColor]) -> list[Coord]:
+    """
+    Construct a vertical line for a coord.
+    """
+    line = []
+    for i in range(BOARD_N):
+        if not board.get(Coord(i, coord.c), None):
+            line.append(Coord(i, coord.c))
+    return line
         
 def reconstruct_path(came_from: dict[Coord, Coord | None], current: Coord | None) -> list[Coord | None]:
     """
