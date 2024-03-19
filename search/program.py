@@ -103,7 +103,7 @@ def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coo
     expanded_nodes = 0
     duplicated_nodes = 0
     
-    closest_coord = find_closest_coord(start, goal)
+    closest_coord = find_closest_coord(list(start.coords), goal)
     heapq.heappush(open_set, (0, closest_coord))  # heap is initialized with start node
     came_from = {closest_coord: None}
     came_from_piece = {closest_coord: start}
@@ -130,7 +130,7 @@ def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coo
                     return pieces[1:]
             for adjacent_coord in get_valid_adjacents(board, coord):
                 for move in get_valid_moves(board, tetronimos, adjacent_coord, reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)):
-                    move_coord = find_closest_coord(move, goal)
+                    move_coord = find_closest_coord(list(move.coords), goal)
 
                     if move not in came_from_piece and move_coord not in came_from:
                         generated_nodes += 1
@@ -249,12 +249,12 @@ def get_invalid_adjacents(board: dict[Coord, PlayerColor], coord: Coord) -> list
     #print("invalid:", invalid_adjacents)
     return invalid_adjacents
 
-def find_closest_coord(piece: PlaceAction, goal: Coord) -> Coord:
+def find_closest_coord(pieces: list[Coord], goal: Coord) -> Coord:
     """
     Find the closest coordinate to the goal from a list of coordinates.
     """
-    closest = list(piece.coords)[0]
-    for coord in list(piece.coords):
+    closest = list(pieces)[0]
+    for coord in list(pieces):
         if coord == None:
             continue
         if closest == None:
@@ -264,6 +264,8 @@ def find_closest_coord(piece: PlaceAction, goal: Coord) -> Coord:
     return closest
 
 # TODO: make more efficient heuristic/s
+# NOTE: heristic could be sum of manhattan distances to empty blocks in goal image (filled row or filled column)
+# NOTE: a star search to multiple goal coords?
 def heuristic(a: Coord, b: Coord) -> int:
     """
     Calculate the Manhattan distance between two points.
@@ -286,6 +288,19 @@ def count_pieces(came_from: dict[Coord, Coord | None], coord: Coord | None) -> i
         coord = came_from[coord]
         pieces += 1
     return pieces
+
+def heuristic_to_goal(board: dict[Coord, PlayerColor], piece: PlaceAction, goal: Coord, came_from) -> int:
+    """
+    Calculate the heuristic to the goal graph.
+    """
+    # find row and column to fill
+    filled_row = [Coord(goal.r, c) for c in range(BOARD_N)]
+    filled_col = [Coord(r, goal.c) for r in range(BOARD_N)]
+    reds_on_board = [coord for coord in board if board.get(coord, None) == PlayerColor.RED]
+    reds = reds_on_board + [coord for coord in piece.coords if board.get(coord, None) == PlayerColor.RED]
+    heuristic_row = sum([heuristic(find_closest_coord(reds, goal), goal) for coord in filled_row if board.get(coord, None)])
+    heuristic_col = sum([heuristic(find_closest_coord(reds, goal), goal) for coord in filled_col if board.get(coord, None)])
+    return min(heuristic_row, heuristic_col) # + pieces used
         
 def reconstruct_path(came_from: dict[Coord, Coord | None], current: Coord | None) -> list[Coord | None]:
     """
