@@ -151,8 +151,6 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
             if coord is None:
                 continue
             
-            # TODO: fix overlapping pieces
-            
             # if coords left in goal_list, find next closest coord - check havent already covered?
             if coord is goal or coord in goal_list:
                 # check haven't accidentally covered with current piece
@@ -167,8 +165,10 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
                     path += reconstruct_pieces(reconstruct_path(came_from_coord, current_coord), came_from_piece)
                     # reset starting from current piece
                     open_set = []
-                    came_from_coord = {current_coord: None}
-                    came_from_piece = {current_coord: came_from_piece[current_coord]}
+                    # TODO: stop from breaking when putting previous moves in
+                    # put moves in board
+                    for piece in path:
+                        perform_move(board, piece)
                     g = {current_coord: 0}
                     f = {current_coord: heuristic_piece(came_from_piece[current_coord], current_coord, goal, came_from_coord)}
                     heapq.heappush(open_set, (f[current_coord], current_coord))
@@ -209,8 +209,8 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
                         board_temp = board.copy()
                         if (came_from_piece[move_coord] is not None):
                             perform_move(board_temp, came_from_piece[current_coord])
-                        print(render_board(perform_move(board_temp, move), goal, ansi=False))
-                        print("coord:", move_coord, "h:", heuristic_piece(came_from_piece[current_coord], current_coord, move_coord, came_from_coord), "+", heuristic_piece(move, move_coord, goal, came_from_coord))
+                        print(render_board(perform_move(board_temp, move), goal, ansi=True))
+                        #print("coord:", move_coord, "h:", heuristic_piece(came_from_piece[current_coord], current_coord, move_coord, came_from_coord), "+", heuristic_piece(move, move_coord, goal, came_from_coord))
                         print("goal:", goal)
                         print("goal_list:", goal_list)
                         #print("generated nodes:", generated_nodes)
@@ -355,6 +355,18 @@ def find_closest_coord(piece: PlaceAction, goal: Coord) -> Coord:
             closest = coord
     return closest
 
+def find_closest_coord_list(coords: list[Coord], goal: Coord) -> Coord:
+    """
+    Find the closest coordinate to the goal from a list of coordinates.
+    """
+    closest = coords[0]
+    for coord in coords:
+        if closest is None:
+            closest = coord
+        elif heuristic(coord, goal) < heuristic(closest, goal):
+            closest = coord
+    return closest
+
 # TODO: make more efficient heuristic/s
 # TODO: alter heuristic to cover multiple goal_list coords at once
 def heuristic(a: Coord, b: Coord) -> int:
@@ -369,6 +381,19 @@ def heuristic_piece(piece: PlaceAction, coord: Coord, goal: Coord, came_from) ->
     """
     manhattan_distance = sum([heuristic(coord, goal) for coord in piece.coords if coord is not None])
     return manhattan_distance + count_pieces(came_from, coord)
+
+def heuristic_to_goal(board: dict[Coord, PlayerColor], piece: PlaceAction, goal: Coord, came_from) -> int:
+    """
+    Calculate the heuristic to the goal graph.
+    """
+    # find row and column to fill
+    filled_row = [Coord(goal.r, c) for c in range(BOARD_N)]
+    filled_col = [Coord(r, goal.c) for r in range(BOARD_N)]
+    reds_on_board = [coord for coord in board if board.get(coord, None) == PlayerColor.RED]
+    reds = reds_on_board + [coord for coord in piece.coords if board.get(coord, None) == PlayerColor.RED]
+    heuristic_row = sum([heuristic(find_closest_coord_list(reds, goal), goal) for coord in filled_row if board.get(coord, None)])
+    heuristic_col = sum([heuristic(find_closest_coord_list(reds, goal), goal) for coord in filled_col if board.get(coord, None)])
+    return min(heuristic_row, heuristic_col) # + pieces used
 
 def count_pieces(came_from: dict[Coord, Coord | None], coord: Coord | None) -> int:
     """
