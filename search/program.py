@@ -158,7 +158,11 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
             if coord == current_goal:
                 # print board state
                 board_temp = board.copy()
-                print(render_board(perform_move(board_temp, current_piece), current_goal, ansi=True))
+                # skip invalid cases
+                if (perform_move(board_temp, current_piece) == False):
+                    print("ERROR: invalid move")
+                    continue
+                print(render_board(board_temp, current_goal, ansi=True))
                 print("REMOVED GOAL:", coord)
                 
                 # remove goal from goals
@@ -169,9 +173,17 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
                 path = list(dict.fromkeys(path))
                 pieces += reconstruct_pieces(path, came_from_piece)
                 pieces = list(dict.fromkeys(pieces))
+                
+                # if the moves are invalid, continue to next iteration
+                continue_outer = False
                 for piece in pieces:
-                    perform_move(board, piece)
-                     
+                    if (perform_move(board, piece) == False):
+                        print("ERROR: invalid move")
+                        continue_outer = True
+                        break
+                if continue_outer:
+                    continue
+                
                 # reset starting from current piece
                 current_goal = find_closest_line_coord(coord, goal_line)
                 # check if None (even though cannot logically occur)
@@ -185,7 +197,10 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
             if coord in goal_line:
                 # print board state
                 board_temp = board.copy()
-                print(render_board(perform_move(board_temp, current_piece), current_goal, ansi=True))
+                if (perform_move(board_temp, current_piece) == False):
+                    print("ERROR: invalid move")
+                    continue
+                print(render_board(board_temp, current_goal, ansi=True))
                 print("REMOVED:", coord)
                 goal_line.remove(coord)
                 
@@ -193,8 +208,15 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
                 path = list(dict.fromkeys(path))
                 pieces += reconstruct_pieces(path, came_from_piece)
                 pieces = list(dict.fromkeys(pieces))
+                # if the moves are invalid, continue to next iteration
+                continue_outer = False
                 for piece in pieces:
-                    perform_move(board, piece)
+                    if (perform_move(board, piece) == False):
+                        print("ERROR: invalid move")
+                        continue_outer = True
+                        break
+                if continue_outer:
+                    continue
                 
             # if no more goals
             if not goal_line:
@@ -203,8 +225,15 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
                 pieces += reconstruct_pieces(path, came_from_piece)
                 pieces = list(dict.fromkeys(pieces))
                 # print solution
+                # if the moves are invalid, continue to next iteration
+                continue_outer = False
                 for piece in pieces:
-                    perform_move(board, piece)
+                    if (perform_move(board, piece) == False):
+                        print("ERROR: invalid move")
+                        continue_outer = True
+                        break
+                if continue_outer:
+                    continue
                 print("\nSOLUTION:")
                 print(render_board(board, goal, ansi=True))
                 return pieces[1:]
@@ -263,7 +292,8 @@ def get_valid_moves(board: dict[Coord, PlayerColor], tetronimos: list[PlaceActio
     board_temp = board.copy()
     # get all previous pieces, put on temp board
     for move in prev_moves:
-        perform_move(board_temp, move)
+        if not perform_move(board_temp, move):
+            return []
     
     # for each piece, check if valid, if valid, add to list of possible moves
     for move in get_moves(coord, tetronimos):
@@ -476,13 +506,18 @@ def reconstruct_pieces(coords: list[Coord | None], came_from_piece: dict[Coord |
             pieces.append(piece)
     return pieces
 
-def perform_move(board: dict[Coord, PlayerColor], move: PlaceAction) -> dict[Coord, PlayerColor]:
+def perform_move(board: dict[Coord, PlayerColor], move: PlaceAction) -> bool:
     """
     Perform a list of PlaceActions on the board.
     """
     for coord in move.coords:
-        board[coord] = PlayerColor.RED
-    return board
+        if (coord == None):
+            continue
+        if (board.get(coord, None)) == None:
+            board[coord] = PlayerColor.RED
+        else:
+            return False
+    return True
 
 
 # check all 19 possible moves, check if valid, if valid, add to list of possible moves
