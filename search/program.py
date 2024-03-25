@@ -36,11 +36,11 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
     # scan board to find the start red positions
     start = []
     for coord, colour in board.items():
-        if colour is PlayerColor.RED:
+        if colour == PlayerColor.RED:
             start.append(coord)
 
     # if no start positions found, return None
-    if start is None:
+    if start == None:
         return None
     
     # fill up with empty coords if less than 4
@@ -71,7 +71,7 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
     
     print("goals:", line)
     
-    path = a_star_search(board, start, goal)
+    path = a_star_search(board, start, line, goal)
     
     """
     while line:
@@ -121,64 +121,105 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
         PlaceAction(Coord(5, 8), Coord(6, 8), Coord(7, 8), Coord(8, 8)),
     ]
     """
-# TODO: path find to row/col line of goal
+# TODO: can optimise by recording valid adjacent moves in a dict
+# TODO: alter heuristic to want to cover as many goal coords in one move as possible
 
-def a_star_search(board: dict[Coord, PlayerColor], start: PlaceAction, goal: Coord) -> list[PlaceAction] | None:
+def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_line: list[Coord], goal: Coord) -> list[PlaceAction] | None:
     """
     Perform an A* search to find the shortest path from start to goal.
     """
     tetronimos = get_tetronimos()
     open_set = []
-    came_from: dict[Coord, Coord | None]
-    came_from_piece: dict[Coord | None, PlaceAction]
     
     generated_nodes = 0
     expanded_nodes = 0
     duplicated_nodes = 0
     
-    closest_coord = closet_coord_to_start(board, goal)
-    heapq.heappush(open_set, (0, closest_coord))  # heap is initialized with start node
-    came_from = {closest_coord: None}
-    came_from_piece = {closest_coord: start}
-    g_score = {closest_coord: 0}
-    f_score = {closest_coord: heuristic_to_goal(board, closest_coord, goal)}
+    start_coord = find_closest_coord_in_list(list(start_piece.coords), goal_line)
+    heapq.heappush(open_set, (0, start_coord))  # heap is initialized with start node
+    prev_moves = {0: [start_piece]} # using node id to store previous moves
+    g = {start_coord: 0}
+    f = {start_coord: heuristic_to_line(start_coord, goal_line)}
 
     while open_set:
-        _, current = heapq.heappop(open_set)  # node with lowest f_score is selected
+        _, current_coord = heapq.heappop(open_set)  # node with lowest f_score is selected
         expanded_nodes += 1
-
-        # for each coord of a piece, find adjacent coord, find valid move to be played, if valid, add to list of possible moves
-        for coord in came_from_piece[current].coords:
-            if coord is None:
+        
+        # goal check first so current_goal can be updated for moving
+        invalid = False
+        if coord == None:
+            continue
+        if coord in goal_line:
+            # print board state
+            board_temp = board.copy()
+            if (perform_move(board_temp, current_piece) == False):
+                print("ERROR: invalid move")
+                invalid = True
+                break
+            print(render_board(board_temp, goal, ansi=True))
+            print("REMOVED:", coord)
+            goal_line.remove(coord)
+            
+            path += reconstruct_path(came_from_coord, current_coord)
+            path = list(dict.fromkeys(path))
+            pieces += reconstruct_pieces(path, came_from_piece)
+            pieces = list(dict.fromkeys(pieces))
+            # if the moves are invalid, continue to next iteration
+            continue_outer = False
+            for piece in pieces:
+                if (perform_move(board, piece) == False):
+                    print("ERROR: invalid move")
+                    continue_outer = True
+                    break
+            if continue_outer:
                 continue
             
-            for adjacent_coord in get_invalid_adjacents(board, coord):
-                if (adjacent_coord == goal):
-                    pieces = reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)
-                    # print solution
-                    for piece in pieces:
-                        perform_move(board, piece)
-                    print("\nSOLUTION:")
-                    print(render_board(board, goal, ansi=True))
-                    return pieces[1:]
+        # if no more goals
+        if not goal_line:
+            path += reconstruct_path(came_from_coord, current_coord)
+            path = list(dict.fromkeys(path))
+            pieces += reconstruct_pieces(path, came_from_piece)
+            pieces = list(dict.fromkeys(pieces))
+            # print solution
+            # if the moves are invalid, continue to next iteration
+            continue_outer = False
+            for piece in pieces:
+                if (perform_move(board, piece) == False):
+                    print("ERROR: invalid move")
+                    continue_outer = True
+                    break
+            if continue_outer:
+                continue
+            print("\nSOLUTION:")
+            print(render_board(board, goal, ansi=True))
+            return pieces[1:]
+            
+        if invalid:
+            continue
+        # find next moves
+        for coord in current_piece.coords:
+            if coord == None:
+                continue
             for adjacent_coord in get_valid_adjacents(board, coord):
-                for move in get_valid_moves(board, tetronimos, adjacent_coord, reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)):
-                    move_coord = closet_coord_to_start(board, goal)
+                for move in get_valid_moves(board, tetronimos, adjacent_coord, reconstruct_pieces(reconstruct_path(came_from_coord, current_coord), came_from_piece)):
+                    move_coord = find_closest_coord(move, current_goal)
 
-                    if move not in came_from_piece and move_coord not in came_from:
+                    if move not in came_from_piece and move_coord not in came_from_coord:
                         generated_nodes += 1
-                        came_from[move_coord] = current
+                        came_from_coord[move_coord] = current_coord
                         came_from_piece[move_coord] = move
-                        g_score[move_coord] = g_score[current] + 1
-                        f_score[move_coord] = g_score[move_coord] + heuristic_to_goal(board, current, move_coord, came_from_piece.get(move_coord, None))
-                        heapq.heappush(open_set, (f_score[move_coord], move_coord))
+                        g[move_coord] = g[current_coord] + heuristic_to_line(current_piece, current_coord, move_coord, came_from_coord, goal_line)
+                        f[move_coord] = g[move_coord] + heuristic_to_line(move, move_coord, current_goal, came_from_coord, goal_line)
+                        heapq.heappush(open_set, (f[move_coord], move_coord))
                         
-                        # print last two pieces
-                        board_temp = board.copy()
-                        if (came_from_piece[move_coord] != None):
-                            perform_move(board_temp, came_from_piece[current])
-                        print("coord:", move_coord, "h:", heuristic_to_goal(board, move_coord, goal, came_from_piece.get(move_coord, None)))
-                        print(render_board(perform_move(board_temp, move), goal, ansi=True))
+                        # print last two pieces + info
+                        #board_temp = board.copy()
+                        #if (came_from_piece[move_coord] != None):
+                            #perform_move(board_temp, current_piece)
+                        #print(render_board(perform_move(board_temp, move), current_goal, ansi=True))
+                        print("coord:", move_coord, "h:", heuristic_to_line(current_piece, current_coord, move_coord, came_from_coord, goal_line), "+", heuristic_to_line(move, move_coord, goal, came_from_coord, goal_line))
+                        print("current goal:", current_goal)
+                        print("goal line:", goal_line)
                         print("generated nodes:", generated_nodes)
                         print("expanded nodes:", expanded_nodes)
                         print("duplicate nodes:", duplicated_nodes)
@@ -282,31 +323,6 @@ def get_invalid_adjacents(board: dict[Coord, PlayerColor], coord: Coord) -> list
     #print("invalid:", invalid_adjacents)
     return invalid_adjacents
 
-def find_closest_coords(piece: PlaceAction, line: list[Coord]) -> tuple[Coord, Coord]:
-    # outside min between two coords
-       # inside min for piece
-       # inside min for line
-    
-    # get first non-None coord of piece
-    piece_coord = list(piece.coords)[0]
-    for p in list(piece.coords):
-        if p is None:
-            continue
-        piece_coord = p
-        
-    line_coord = line[0]
-    min_dist = heuristic(piece_coord, line_coord)
-    for l in line:
-        for p in list(piece.coords):
-            if p is None:
-                continue
-            if heuristic(p, l) < min_dist:
-                min_dist = heuristic(p, l)
-                piece_coord = p
-                line_coord = l
-    return piece_coord, line_coord
-                
-
 def find_closest_coord(piece: PlaceAction, goal: Coord) -> Coord:
     """
     Find the closest coordinate to the goal from a piece.
@@ -321,7 +337,7 @@ def find_closest_coord(piece: PlaceAction, goal: Coord) -> Coord:
             closest = coord
     return closest
 
-def find_closest_coord_list(coords: list[Coord], goal: Coord) -> Coord:
+def find_closest_coord_in_list(coords: list[Coord], goal_line: list[Coord]) -> Coord:
     """
     Find the closest coordinate to the goal from a list of coordinates.
     """
@@ -329,7 +345,7 @@ def find_closest_coord_list(coords: list[Coord], goal: Coord) -> Coord:
     for coord in coords:
         if closest is None:
             closest = coord
-        elif heuristic(coord, goal) < heuristic(closest, goal):
+        elif heuristic_to_line(coord, goal_line) < heuristic_to_line(closest, goal_line):
             closest = coord
     return closest
 
@@ -353,39 +369,11 @@ def heuristic(a: Coord, b: Coord) -> int:
     ab = abs(ar - br) + abs(ac - bc)
     return pow(ab, 2)
 
-def heuristic_piece(piece: PlaceAction, coord: Coord, goal: Coord, came_from) -> int:
-    """
-    Calculate a heuristic for a piece based on the Manhattan distance to the goal and the number of pieces in the path so far.
-    """
-    manhattan_distance = sum([heuristic(coord, goal) for coord in piece.coords if coord is not None])
-    return manhattan_distance + count_pieces(came_from, coord)
-
-def heuristic_to_goal(board: dict[Coord, PlayerColor], cur: Coord, goal: Coord, piece: Optional[PlaceAction]=None) -> int:
+def heuristic_to_line(cur: Coord, goal_line:list[Coord]) -> int:
     """
     Calculate the heuristic to the goal graph using Manhattan distance and number of pieces in the path so far.
     """
-    # reds on board
-    reds = [coord for coord in board if board.get(coord, None) == PlayerColor.RED]
-    if (piece != None):
-        # reds plus placed reds
-        reds = reds + [coord for coord in piece.coords if board.get(coord, None) == PlayerColor.RED]
-    heuristic_row = sum([heuristic(find_closest_coord_list(reds, coord), coord) for coord in construct_horizontal_line(cur, board)])
-    heuristic_col = sum([heuristic(find_closest_coord_list(reds, coord), coord) for coord in construct_vertical_line(cur, board)])
-    return min(heuristic_row, heuristic_col)
-
-def closet_coord_to_start(board: dict[Coord, PlayerColor], goal: Coord) -> Coord:
-    """
-    Find the closest coordinate to start to fill the row or column.
-    """
-    reds = [coord for coord in board if board.get(coord, None) == PlayerColor.RED]
-    cur_heuristic = heuristic_to_goal(board, reds[0], goal)
-    result = reds[0]
-    for coord in reds:
-        heuristic = heuristic_to_goal(board, coord, goal)
-        if heuristic < cur_heuristic:
-            cur_heuristic = heuristic
-            result = coord
-    return result
+    return sum([heuristic(cur, goal) for goal in goal_line])
 
 def count_pieces(came_from: dict[Coord, Coord | None], coord: Coord | None) -> int:
     """
