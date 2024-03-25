@@ -70,7 +70,7 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
     
     print("goals:", line)
     
-    path = a_star_search(board, start, line)
+    path = a_star_search(board, start, line, goal)
     
     """
     while line:
@@ -122,7 +122,7 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
     """
 # TODO: path find to row/col line of goal
 
-def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_list: list[Coord]) -> list[PlaceAction] | None:
+def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_list: list[Coord], goal: Coord) -> list[PlaceAction] | None:
     """
     Perform an A* search to find the shortest path from start to goal.
     """
@@ -136,12 +136,15 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
     expanded_nodes = 0
     duplicated_nodes = 0
     
-    start_coord, goal = find_closest_coords(start_piece, goal_list) 
+    start_coord, current_goal = find_closest_coords(start_piece, goal_list) 
     heapq.heappush(open_set, (0, start_coord))  # heap is initialized with start node
     came_from_coord = {start_coord: None}
     came_from_piece = {start_coord: start_piece}
     g = {start_coord: 0}
-    f = {start_coord: heuristic_piece(start_piece, start_coord, goal, came_from_coord)}
+    f = {start_coord: heuristic_piece(start_piece, start_coord, current_goal, came_from_coord)}
+    
+    # temp
+    current_goal = goal
 
     while open_set:
         _, current_coord = heapq.heappop(open_set)  # node with lowest f_score is selected
@@ -150,7 +153,7 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
         for coord in came_from_piece[current_coord].coords:
             if coord is None:
                 continue
-            
+            """
             # if coords left in goal_list, find next closest coord - check havent already covered?
             if coord is goal or coord in goal_list:
                 # check haven't accidentally covered with current piece
@@ -164,13 +167,13 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
                     # add to path so far
                     path += reconstruct_pieces(reconstruct_path(came_from_coord, current_coord), came_from_piece)
                     # reset starting from current piece
-                    open_set = []
+                    #open_set = []
                     # TODO: stop from breaking when putting previous moves in
                     # put moves in board
                     for piece in path:
                         perform_move(board, piece)
-                    g = {current_coord: 0}
-                    f = {current_coord: heuristic_piece(came_from_piece[current_coord], current_coord, goal, came_from_coord)}
+                    #g = {current_coord: 0}
+                    #f = {current_coord: heuristic_piece(came_from_piece[current_coord], current_coord, goal, came_from_coord)}
                     heapq.heappush(open_set, (f[current_coord], current_coord))
                     continue
                 else:
@@ -184,34 +187,34 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
             # old adjacent goal checking
             """
             for adjacent_coord in get_invalid_adjacents(board, coord):
-                if (adjacent_coord == goal):
-                    pieces = reconstruct_pieces(reconstruct_path(came_from, current), came_from_piece)
+                if (adjacent_coord is current_goal):
+                    pieces = reconstruct_pieces(reconstruct_path(came_from_coord, current_coord), came_from_piece)
                     # print solution
                     for piece in pieces:
                         perform_move(board, piece)
                     print("\nSOLUTION:")
-                    print(render_board(board, goal, ansi=True))
+                    print(render_board(board, current_goal, ansi=True))
                     return pieces[1:]
-            """
+            
             for adjacent_coord in get_valid_adjacents(board, coord):
                 for move in get_valid_moves(board, tetronimos, adjacent_coord, reconstruct_pieces(reconstruct_path(came_from_coord, current_coord), came_from_piece)):
-                    move_coord = find_closest_coord(move, goal)
+                    move_coord = find_closest_coord(move, current_goal)
 
                     if move not in came_from_piece and move_coord not in came_from_coord:
                         generated_nodes += 1
                         came_from_coord[move_coord] = current_coord
                         came_from_piece[move_coord] = move
                         g[move_coord] = g[current_coord] + heuristic_piece(came_from_piece[current_coord], current_coord, move_coord, came_from_coord)
-                        f[move_coord] = g[move_coord] + heuristic_piece(move, move_coord, goal, came_from_coord)
+                        f[move_coord] = g[move_coord] + heuristic_piece(move, move_coord, current_goal, came_from_coord)
                         heapq.heappush(open_set, (f[move_coord], move_coord))
                         
                         # print last two pieces
                         board_temp = board.copy()
                         if (came_from_piece[move_coord] is not None):
                             perform_move(board_temp, came_from_piece[current_coord])
-                        print(render_board(perform_move(board_temp, move), goal, ansi=True))
+                        print(render_board(perform_move(board_temp, move), current_goal, ansi=True))
                         #print("coord:", move_coord, "h:", heuristic_piece(came_from_piece[current_coord], current_coord, move_coord, came_from_coord), "+", heuristic_piece(move, move_coord, goal, came_from_coord))
-                        print("goal:", goal)
+                        print("goal:", current_goal)
                         print("goal_list:", goal_list)
                         #print("generated nodes:", generated_nodes)
                         #print("expanded nodes:", expanded_nodes)
