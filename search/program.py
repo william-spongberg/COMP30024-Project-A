@@ -161,14 +161,8 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
                 print(render_board(perform_move(board_temp, current_piece), current_goal, ansi=True))
                 print("REMOVED GOAL:", coord)
                 
+                # remove goal from goals
                 goal_line.remove(coord)
-                     
-                # reset starting from current piece
-                current_goal = find_closest_line_coord(coord, goal_line)
-                # check if None (even though cannot logically occur)
-                if current_goal == None:
-                    print("ERROR: current_goal is None")
-                    current_goal = goal
                 
                 # put moves in board
                 path += reconstruct_path(came_from_coord, current_coord)
@@ -177,7 +171,16 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
                 pieces = list(dict.fromkeys(pieces))
                 for piece in pieces:
                     perform_move(board, piece)
-            
+                     
+                # reset starting from current piece
+                current_goal = find_closest_line_coord(coord, goal_line)
+                # check if None (even though cannot logically occur)
+                if current_goal == None:
+                    print("ERROR: current_goal is None")
+                    print("\nSOLUTION:")
+                    print(render_board(board, goal, ansi=True))
+                    return pieces[1:]
+                
             # TODO: fix taking non-optimal path
             if coord in goal_line:
                 # print board state
