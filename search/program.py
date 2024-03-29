@@ -4,6 +4,7 @@
 from .core import PlayerColor, Coord, PlaceAction, Direction
 from .utils import render_board
 from typing import Optional
+from math import inf
 import heapq
 
 BOARD_N = 11
@@ -67,8 +68,11 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
     h_line = construct_horizontal_line(goal, board)
     v_line = construct_vertical_line(goal, board)
     
-    path_h = a_star_search(board, start, h_line, goal)
-    path_v = a_star_search(board, start, v_line, goal)
+    has_solution = False
+    lowest_g = inf
+    
+    path_h = a_star_search(board, start, h_line, goal, has_solution, lowest_g)
+    path_v = a_star_search(board, start, v_line, goal, has_solution, lowest_g)
     
     if (path_h == None):
         return path_v
@@ -111,7 +115,8 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
 # TODO: can optimise by recording valid adjacent moves in a dict
 # TODO: alter heuristic to want to cover as many goal coords in one move as possible
 
-def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_line: list[Coord], goal: Coord) -> list[PlaceAction] | None:
+def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_line: list[Coord], 
+                  goal: Coord, has_solution: bool, lowest_g: float) -> list[PlaceAction] | None:
     """
     Perform an A* search to find the shortest path from start to goal.
     """
@@ -126,7 +131,9 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
     parent_move = {start_piece: NONE_PIECE} # parent of each move
     g = {start_piece: 0}
     f = {start_piece: heuristic_to_goal(get_current_board(board, start_piece, parent_move), goal_line)}
-
+    
+    solution = None
+    
     while open_set:
         _, _, current_piece = heapq.heappop(open_set)  # node with lowest f_score is selected
         expanded_nodes += 1
@@ -142,13 +149,23 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
                     generated_nodes += 1
                     parent_move[move] = current_piece
                     new_board = get_current_board(current_board, move, parent_move)
+                    g[move] = g[current_piece] + 1
+                    if has_solution and g[move] >= lowest_g:
+                        continue
+                    f[move] = g[move] + heuristic_to_goal(new_board, goal_line)
+                    
                     if all([new_board.get(coord, None) for coord in goal_line]):
                         print(render_board(new_board, goal, ansi=True))
                         print("Success! Path found.")
-                        print("length:", g[current_piece] + 1)
-                        return reconstruct_pieces(parent_move, move)
-                    g[move] = g[current_piece] + 1
-                    f[move] = g[move] + heuristic_to_goal(new_board, goal_line)
+                        print("length:", g[move])
+                        if not has_solution:
+                            has_solution = True
+                            lowest_g = g[move]
+                            solution = reconstruct_pieces(parent_move, move)
+                        else:
+                            if g[move] < lowest_g:
+                                lowest_g = g[move]
+                                solution = reconstruct_pieces(parent_move, move)
                     heapq.heappush(open_set, (f[move], generated_nodes, move))
                     
                     print(render_board(new_board, goal, ansi=True))
@@ -163,7 +180,7 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
         if not has_children:
             parent_move.pop(current_piece)
                         
-    return None  # path not found
+    return solution
 
 def get_valid_moves(board: dict[Coord, PlayerColor], tetronimos: list[PlaceAction], coord: Coord) -> list[PlaceAction]:
     """
