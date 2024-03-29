@@ -76,12 +76,21 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
     path_h = a_star_search(board, start, h_line, goal, has_solution, lowest_g)
     path_v = a_star_search(board, start, v_line, goal, has_solution, lowest_g)
     
+    print("lowest_g:", lowest_g)
+    
     if (path_h == None):
-        return path_v
-    if (path_v == None):
-        return path_h
+        print("No solution for h.")
+        path = path_v
+    elif (path_v == None):
+        print("No solution for v.")
+        path = path_h
     else:
-        return path_h if len(path_h) < len(path_v) else path_v
+        print("Both solutions found. Picking shortest")
+        print("h:", len(path_h), "v:", len(path_v))
+        path =  path_h if len(path_h) < len(path_v) else path_v
+        
+    print("path:", path)
+    return path
     
     # TESTING #
     """
@@ -130,65 +139,62 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
     # find that the current logic to avoid duplicate nodes is wrong and it removes correct nodes,
     # so comment out for now
     # duplicated_nodes = 0
-    
-    heapq.heappush(open_set, (0, 0, start_piece))  # heap is initialized with start node
-    parent_move = {start_piece: NONE_PIECE} # parent of each move, using NONE_PIECE to avoid type errors
-    g = {start_piece: 0} # g represents the steps
+
+    heapq.heappush(open_set, (0, 0, board))  # heap is initialized with start node
+    frozen_board = frozenset(board.items())
+    parent_move = {frozen_board: start_piece} # parent of each board, using NONE_PIECE to avoid type errors
+    g = {frozen_board: 0} # g represents the steps
     # heuristic is now judging the whole board, not just the new move
-    f = {start_piece: heuristic_to_goal(get_current_board(board, start_piece, parent_move), goal_line)}
-    
+    f = {frozen_board: heuristic_to_goal(board, goal_line)}
+
     solution = None
     
     while open_set:
-        _, _, current_piece = heapq.heappop(open_set)  # node with lowest f_score is selected
+        _, _, current_board = heapq.heappop(open_set)  # node with lowest f_score is selected
         expanded_nodes += 1
-        
+        current_board_frozen = frozenset(current_board.items())
         # already found a solution with lower g, skip
-        if has_solution and g[current_piece]+1 >= lowest_g:
+        if has_solution and g[current_board_frozen]+1 >= lowest_g:
             continue
-        
-        current_board = get_current_board(board, current_piece, parent_move)
         # find next moves
-        for coord in current_piece.coords:
-            if coord == None:
-                continue
-            # find moves in the whole board
-            for adjacent_coord in get_valid_adjacents_all_over_the_board(current_board, goal_line):
-                for move in get_valid_moves(current_board, tetronimos, adjacent_coord):
-                    generated_nodes += 1
-                    
-                    parent_move[move] = current_piece
-                    
-                    # perform move on board
-                    new_board = get_current_board(current_board, move, parent_move)
-                    g[move] = g[current_piece] + 1
-                    f[move] = g[move] + heuristic_to_goal(new_board, goal_line)
-                    # if goal line is filled, print success message
-                    if all([new_board.get(coord, None) for coord in goal_line]):
-                        print(render_board(new_board, goal, ansi=True))
-                        print("Success! Path found.")
-                        print("length:", g[move])
-                        # update best solution state
-                        if not has_solution:
-                            has_solution = True
-                            lowest_g = g[move]
-                            solution = reconstruct_pieces(parent_move, move)
-                        else:
-                            if g[move] < lowest_g:
-                                lowest_g = g[move]
-                                solution = reconstruct_pieces(parent_move, move)
-                    heapq.heappush(open_set, (f[move], generated_nodes, move))
-                    # print debug info
+        for adjacent_coord in get_valid_adjacents_all_over_the_board(current_board, goal_line):
+            for move in get_valid_moves(current_board, tetronimos, adjacent_coord):
+                generated_nodes += 1
+                new_board = get_current_board(current_board, move)
+                new_board_frozen = frozenset(new_board.items())
+                if new_board_frozen in g and g[new_board_frozen] <= g[current_board_frozen] + 1:
+                    continue
+                parent_move[new_board_frozen] = move
+                
+                # perform move on board
+                g[new_board_frozen] = g[current_board_frozen] + 1
+                f[new_board_frozen] = g[new_board_frozen] + heuristic_to_goal(new_board, goal_line)
+                # if goal line is filled, print success message
+                if all([new_board.get(coord, None) for coord in goal_line]):
                     print(render_board(new_board, goal, ansi=True))
-                    print("move:", move, "g:", g[move], "f:", f[move])
-                    print("goal:", goal)
-                    print("goal line:", goal_line)
-                    print("generated nodes:", generated_nodes)
-                    print("expanded nodes:", expanded_nodes)
-                    # print("duplicate nodes:", duplicated_nodes)
-                    # else:
-                    #     duplicated_nodes += 1
-                        
+                    print("Success! Path found.")
+                    print("length:", g[new_board_frozen])
+                    # update best solution state
+                    if not has_solution:
+                        has_solution = True
+                        lowest_g = g[new_board_frozen]
+                        solution = reconstruct_pieces(parent_move, new_board)
+                        return solution
+                    else:
+                        if g[new_board_frozen] < lowest_g:
+                            lowest_g = g[new_board_frozen]
+                            solution = reconstruct_pieces(parent_move, new_board)
+                heapq.heappush(open_set, (f[new_board_frozen], generated_nodes, new_board))
+                # print debug info
+                print(render_board(new_board, goal, ansi=True))
+                print("move:", move, "g:", g[new_board_frozen], "f:", f[new_board_frozen])
+                print("goal:", goal)
+                print("goal line:", goal_line)
+                print("generated nodes:", generated_nodes)
+                print("expanded nodes:", expanded_nodes)
+                # print("duplicate nodes:", duplicated_nodes)
+                # else:
+                #     duplicated_nodes += 1          
     return solution
 
 def get_valid_moves(board: dict[Coord, PlayerColor], tetronimos: list[PlaceAction], coord: Coord) -> list[PlaceAction]:
@@ -278,19 +284,7 @@ def heuristic(a: Coord, b: Coord) -> int:
     """
     Calculate the Manhattan distance between two points.
     """
-    ar = 0
-    ac = 0
-    if (a is not None):
-        ar = a.r
-        ac = a.c
-    br = 0
-    bc = 0
-    if (b is not None):
-        br = b.r
-        bc = b.c
-    # return min(abs(a.r - b.r), BOARD_N - abs(a.r - b.r)) + min(abs(a.c - b.c), BOARD_N - abs(a.c - b.c))
-    ab = abs(ar - br) + abs(ac - bc)
-    return pow(ab, 2)
+    return min(abs(a.r - b.r), BOARD_N - abs(a.r - b.r)) + min(abs(a.c - b.c), BOARD_N - abs(a.c - b.c))
 
 def heuristic_to_goal(board: dict[Coord, PlayerColor], goal_line: list[Coord]) -> int:
     """
@@ -345,19 +339,13 @@ def empty_space_around_coord(board: dict[Coord, PlayerColor], coord: Coord, coun
                 return count % 5
     return count % 5
 
-def get_current_board(base_board: dict[Coord, PlayerColor], piece: PlaceAction, parent_move: dict[PlaceAction, PlaceAction]) -> dict[Coord, PlayerColor]:
+def get_current_board(base_board: dict[Coord, PlayerColor], piece: PlaceAction) -> dict[Coord, PlayerColor]:
     """
     Get the current board state after placing a piece.
     """
     temp_board = base_board.copy()
-    while piece in parent_move:
-        for coord in piece.coords:
-            # already filled, return
-            if temp_board.get(coord, None):
-                return temp_board
-            # fill in the coord
-            temp_board[coord] = PlayerColor.RED
-        piece = parent_move[piece]
+    for coord in piece.coords:
+        temp_board[coord] = PlayerColor.RED
     return temp_board
 
 def count_pieces(came_from: dict[Coord, Coord | None], coord: Coord | None) -> int:
@@ -390,13 +378,19 @@ def construct_vertical_line(coord: Coord, board: dict[Coord, PlayerColor]) -> li
             line.append(Coord(i, coord.c))
     return line
 
-def reconstruct_pieces(parent_move: dict[PlaceAction, PlaceAction], goal_piece: PlaceAction) -> list[PlaceAction]:
+def reconstruct_pieces(parent_move: dict[frozenset[tuple[Coord, PlayerColor]], PlaceAction], board: dict[Coord, PlayerColor]) -> list[PlaceAction]:
     path = []
-    current_piece = goal_piece
-    while current_piece is not NONE_PIECE:
-        path.append(current_piece)
-        current_piece = parent_move[current_piece]
-    path.reverse()  # Reverse the path to go from start to goal
+    current_board = frozenset(board.items())
+    while current_board in parent_move:
+        move = parent_move[current_board]
+        path.append(move)
+        prev_board = set(current_board)
+        for coord in move.coords:
+            if coord is None:
+                continue
+            prev_board.remove((coord, PlayerColor.RED))
+        current_board = frozenset(prev_board)
+    path.reverse()
     return path
 
 
