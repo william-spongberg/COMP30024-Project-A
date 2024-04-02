@@ -3,6 +3,12 @@
 
 from .core import PlayerColor, Coord, PlaceAction, Direction
 from .utils import render_board
+from .tetronimos import get_tetronimos, get_moves
+from .heuristics import heuristic_to_goal, heuristic_to_line
+from .movements import get_valid_moves, get_valid_adjacents_all_over_the_board, is_valid
+from .lines import construct_horizontal_line, construct_vertical_line
+from .pieces import reconstruct_pieces, count_pieces
+
 from typing import Optional
 from math import inf
 import heapq
@@ -51,19 +57,7 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
     # convert to PlaceAction
     start = PlaceAction(*start)     
     
-    print("start:", start)
-    #print("goal:", goal)
-
-    # a_star_search
-    #path = a_star_search(board, start, goal)
-    #print(path)
-    
-    # change goal as needed? e.g. change to the closest row/col line
-    # decide which row/col line is best -> most filled, closest to start
-    
-    # path find from coord to coord of line, saving path up to last piece in pieces variable
-    # different goal-checking method now - not adjacent to goal, but on the line (coords)
-    
+    print("start:", start)    
     
     h_line = construct_horizontal_line(goal, board)
     v_line = construct_vertical_line(goal, board)
@@ -91,38 +85,7 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
         
     print("path:", path)
     return path
-    
-    # TESTING #
-    """
-    crds = PlaceAction(Coord(2, 5), Coord(2, 6), Coord(3, 6), Coord(3, 7))
-    print(crds)
-    crds_c = crds.coords
-    print(crds_c)
-    crds_l = list(crds_c)
-    print(crds_l)
-    print(crds_l[0])
-    """
-    """
-    coord = Coord(0,5)
-    up = coord.up()
-    #down = coord.down()
-    #left = coord.left()
-    #right = coord.right()
-    c = Coord(up.r, up.c)
-    print(c)
-    """
 
-    # Here we're returning "hardcoded" actions as an example of the expected
-    # output format. Of course, you should instead return the result of your
-    # search algorithm. Remember: if no solution is possible for a given input,
-    # return `None` instead of a list.
-    """
-    return [
-        PlaceAction(Coord(2, 5), Coord(2, 6), Coord(3, 6), Coord(3, 7)),
-        PlaceAction(Coord(1, 8), Coord(2, 8), Coord(3, 8), Coord(4, 8)),
-        PlaceAction(Coord(5, 8), Coord(6, 8), Coord(7, 8), Coord(8, 8)),
-    ]
-    """
 # TODO: can optimise by recording valid adjacent moves in a dict
 # TODO: alter heuristic to want to cover as many goal coords in one move as possible
 
@@ -197,132 +160,6 @@ def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goa
                 #     duplicated_nodes += 1          
     return solution
 
-def get_valid_moves(board: dict[Coord, PlayerColor], tetronimos: list[PlaceAction], coord: Coord) -> list[PlaceAction]:
-    """
-    Get valid PlaceActions from a given coordinate.
-    """
-    valid_moves = []
-    
-    # for each piece, check if valid, if valid, add to list of possible moves
-    for move in get_moves(coord, tetronimos):
-        if is_valid(board, move):
-            valid_moves.append(move)
-
-    #print(valid_moves)
-    return valid_moves
-
-def is_valid(board: dict[Coord, PlayerColor], piece: PlaceAction) -> bool:
-    """
-    Check if the piece can be placed on the board.
-    """
-    for coord in piece.coords:
-        if board.get(coord, None):
-            return False
-    return True
-
-def get_tetronimos() -> list[PlaceAction]:
-    """
-    Get all possible tetronimos.
-    """
-    tetronimos = [
-        PlaceAction(Coord(0, 0), Coord(1, 0), Coord(2, 0), Coord(3, 0)),  # I (straight)
-        PlaceAction(Coord(0, 0), Coord(1, 0), Coord(2, 0), Coord(1, 1)),  # T (T-shape)
-        PlaceAction(Coord(0, 0), Coord(1, 0), Coord(1, 1), Coord(2, 1)),  # S (S-shape)
-        PlaceAction(Coord(0, 0), Coord(0, 1), Coord(1, 1), Coord(2, 1)),  # J (J-shape)
-        PlaceAction(Coord(0, 0), Coord(0, 1), Coord(1, 0), Coord(2, 0)),  # L (L-shape)
-    ]
-    
-    # rotate each tetronimo 4 times
-    rotated_tetronimos = []
-    for tetronimo in tetronimos:
-        for i in range(4):
-            rotated_tetronimos.append(rotate(tetronimo, i))
-    
-    # add cube
-    rotated_tetronimos.append(PlaceAction(Coord(0, 0), Coord(1, 0), Coord(0, 1), Coord(1, 1)))
-    return rotated_tetronimos
-
-def get_moves(coord: Coord, tetronimos: list[PlaceAction]) -> list[PlaceAction]:
-    # get all possible tetronimo moves from a given coordinate
-    list_of_moves = []
-    for tetronimo in tetronimos:
-        move = [coord + Coord(x, y) for x, y in list(tetronimo.coords)]
-        move = PlaceAction(*move)
-        list_of_moves.append(move)
-    return list_of_moves
-
-def rotate(tetronimo: PlaceAction, times: int) -> PlaceAction:
-    """
-    Rotate a tetronimo a certain number of times.
-    """
-    rotated = list(tetronimo.coords)
-    for _ in range(times):
-        # rotated = [Coord(-y, x) for x, y in rotated] # rotate 90 degrees clockwise (x, y) -> (-y, x)
-        rotated = [(Coord(y, x) - Coord((2 * y) % BOARD_N, 0)) for x, y in rotated]
-    rotated = PlaceAction(*rotated)
-    return rotated
-
-def get_valid_adjacents_all_over_the_board(board: dict[Coord, PlayerColor], goal_line: list[Coord]) -> list[Coord]:
-    """
-    Get valid adjacent coordinates from all over the board.
-    """
-    valid_adjacents = []
-    for coord in board:
-        if (coord is not None) and (board.get(coord, None) == PlayerColor.RED):
-            directions = [coord.up(), coord.down(), coord.left(), coord.right()]
-            adjacents = [Coord(dir.r, dir.c) for dir in directions]
-            for adjacent in adjacents:
-                if not board.get(adjacent, None): # if adjacent is empty
-                    valid_adjacents.append(adjacent)
-    # rearrage list to order by distance to goal list
-    # valid_adjacents.sort(key=lambda x: heuristic_to_line(x, goal_line))
-    return valid_adjacents
-
-# TODO: make more efficient heuristic/s
-# TODO: alter heuristic to cover multiple goal_list coords at once
-def heuristic(a: Coord, b: Coord) -> int:
-    """
-    Calculate the Manhattan distance between two points.
-    """
-    return min(abs(a.r - b.r), BOARD_N - abs(a.r - b.r)) + min(abs(a.c - b.c), BOARD_N - abs(a.c - b.c))
-
-def heuristic_to_goal(board: dict[Coord, PlayerColor], goal_line: list[Coord]) -> int:
-    """
-    Calculate the heuristic to the goal graph using Manhattan distance
-    """
-    sum = 0
-    for coord in goal_line:
-        closest = clostest_to_point(board, coord)
-        sum += heuristic(closest, coord)
-    return sum
-
-def heuristic_to_line(coord: Coord, goal_line: list[Coord]) -> int:
-    """
-    Calculate the heuristic to the goal line using Manhattan distance
-    """
-    distance = -1
-    for goal in goal_line:
-        if distance == -1:
-            distance = heuristic(coord, goal)
-        elif heuristic(coord, goal) < distance:
-            distance = heuristic(coord, goal)
-    return distance
-
-def clostest_to_point(board: dict[Coord, PlayerColor], point: Coord) -> Coord:
-    """
-    Find the closest coordinate to the goal line.
-    """
-    reds = [coord for coord in board if board.get(coord, None) == PlayerColor.RED]
-    closest = reds[0]
-    for coord in reds:
-        if coord is None:
-            continue
-        if closest is None:
-            closest = coord
-        elif heuristic(coord, point) < heuristic(closest, point):
-            closest = coord
-    return closest
-
 def empty_space_around_coord(board: dict[Coord, PlayerColor], coord: Coord, count: int) -> int:
     """
     Count the number of empty spaces around a coordinate.
@@ -347,58 +184,3 @@ def get_current_board(base_board: dict[Coord, PlayerColor], piece: PlaceAction) 
     for coord in piece.coords:
         temp_board[coord] = PlayerColor.RED
     return temp_board
-
-def count_pieces(came_from: dict[Coord, Coord | None], coord: Coord | None) -> int:
-    """
-    Count the number of pieces in the path to the current node.
-    """
-    pieces = 0
-    while (coord in came_from):
-        coord = came_from[coord]
-        pieces += 1
-    return pieces
-
-def construct_horizontal_line(coord: Coord, board: dict[Coord, PlayerColor]) -> list[Coord]:
-    """
-    Construct a horizontal line for a coord.
-    """
-    line = []
-    for i in range(BOARD_N):
-        if not board.get(Coord(coord.r, i), None):
-            line.append(Coord(coord.r, i))
-    return line
-
-def construct_vertical_line(coord: Coord, board: dict[Coord, PlayerColor]) -> list[Coord]:
-    """
-    Construct a vertical line for a coord.
-    """
-    line = []
-    for i in range(BOARD_N):
-        if not board.get(Coord(i, coord.c), None):
-            line.append(Coord(i, coord.c))
-    return line
-
-def reconstruct_pieces(parent_move: dict[frozenset[tuple[Coord, PlayerColor]], PlaceAction], board: dict[Coord, PlayerColor]) -> list[PlaceAction]:
-    path = []
-    current_board = frozenset(board.items())
-    while current_board in parent_move:
-        move = parent_move[current_board]
-        path.append(move)
-        prev_board = set(current_board)
-        for coord in move.coords:
-            if coord is None:
-                continue
-            prev_board.remove((coord, PlayerColor.RED))
-        current_board = frozenset(prev_board)
-    path.reverse()
-    return path
-
-
-# check all 19 possible moves, check if valid, if valid, add to list of possible moves
-# for each possible move, calculate the cost of the move
-# edge cost calculated from furthest coord of current to closest coord of next
-# need to create some data structure to represent a piece (4 coords)
-
-# add each coord to piece seperately, using add method (overridden in Coord class)
-
-# find path to goal, then fill in? then back track, filling in first?
