@@ -229,4 +229,19 @@ def get_current_board(base_board: dict[Coord, PlayerColor], piece: PlaceAction) 
     temp_board = base_board.copy()
     for coord in piece.coords:
         temp_board[coord] = PlayerColor.RED
+        check_row_and_col(temp_board, coord)
     return temp_board
+
+def check_row_and_col(board: dict[Coord, PlayerColor], coord: Coord):
+    """
+    Check if a row and column is filled, if so remove them.
+    """
+    row = [board.get(Coord(coord.r, i), None) for i in range(BOARD_N)]
+    col = [board.get(Coord(i, coord.c), None) for i in range(BOARD_N)]
+    if all(row):
+        for i in range(BOARD_N):
+            del board[Coord(coord.r, i)]
+    if all(col):
+        for i in range(BOARD_N):
+            del board[Coord(i, coord.c)]
+    return
