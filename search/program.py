@@ -104,6 +104,9 @@ def bfs_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_l
     visited = set([frozenset(board.items())])  # visited set is initialized with start node
     predecessors = {frozenset(board.items()): frozenset()}  # dictionary to keep track of predecessors
 
+    generated_nodes = 0
+    duplicated_nodes = 0
+
     while queue:
         current_piece, current_board = queue.popleft()  # node with lowest f_score is selected
         current_board_frozen = frozenset(current_board.items())
@@ -112,15 +115,21 @@ def bfs_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_l
             for move in get_valid_moves(current_board, tetronimos, adjacent_coord):
                 new_board = get_current_board(current_board, move)
                 new_board_frozen = frozenset(new_board.items())
+                generated_nodes += 1
                 if new_board_frozen in visited:
+                    duplicated_nodes += 1
                     continue
                 visited.add(new_board_frozen)
                 predecessors[new_board_frozen] = current_board_frozen  # update the predecessor of the new node
                 # if goal line is filled, return the path
                 if all([new_board.get(coord, None) for coord in goal_line]):
                     print(render_board(new_board, goal, ansi=True))
+                    print(f"Generated nodes: {generated_nodes}")
+                    print(f"Duplicated nodes: {duplicated_nodes}")
                     return reconstruct_path(predecessors, new_board)
                 queue.append((move, new_board))
+    print(f"Generated nodes: {generated_nodes}")
+    print(f"Duplicated nodes: {duplicated_nodes}")
     return None
 
 def reconstruct_path(predecessors: dict, end: dict) -> list:
@@ -229,8 +238,9 @@ def get_current_board(base_board: dict[Coord, PlayerColor], piece: PlaceAction) 
     temp_board = base_board.copy()
     for coord in piece.coords:
         temp_board[coord] = PlayerColor.RED
-        check_row_and_col(temp_board, coord)
+        #check_row_and_col(temp_board, coord)
     return temp_board
+
 
 def check_row_and_col(board: dict[Coord, PlayerColor], coord: Coord):
     """
