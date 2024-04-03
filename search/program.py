@@ -99,11 +99,13 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                 if new_board_frozen in visited:
                     duplicated_nodes += 1
                     continue
+                
                 visited.add(new_board_frozen)
                 board_id += 1
                 board_dict[board_id] = new_board  # update the board for the new board_id
                 move_dict[new_board_frozen] = move  # update the move for the new board
                 predecessors[new_board_frozen] = (current_board_frozen, move)  # update the predecessor of the new node
+                
                 # if goal line is filled, return the path
                 if all([new_board.get(coord, None) for coord in goal_line]):
                     print(render_board(new_board, goal, ansi=True))
@@ -111,23 +113,11 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                     print(f"Duplicated nodes: {duplicated_nodes}")
                     
                     path = reconstruct_path(predecessors, new_board)
-                    
-                    # check if goal line is horizontal or vertical
-                    if goal_line[0].r == goal_line[1].r:
-                        print("Goal line is horizontal")
-                        goal_line_rows = {coord.r for coord in goal_line}
-                        for coord in list(new_board.keys()):  # create a copy of keys to iterate over
-                            if coord.r in goal_line_rows:
-                                del new_board[coord]
-                    else:
-                        print("Goal line is vertical")
-                        goal_line_cols = {coord.c for coord in goal_line}
-                        for coord in list(new_board.keys()):  # create a copy of keys to iterate over
-                            if coord.c in goal_line_cols:
-                                del new_board[coord]                    
+                    new_board = delete_goal_line(new_board, goal_line)
                     print(render_board(new_board, goal, ansi=True))
-                    return path[1:]
-                new_board = delete_filled_lines(new_board)
+                    return path[1:]  # remove the start move
+                #new_board = delete_filled_lines(new_board)
+                
                 # calculate heuristic cost
                 heuristic_cost = calculate_heuristic(new_board, goal)
                 heapq.heappush(queue, (heuristic_cost, board_id))
@@ -173,6 +163,21 @@ def get_current_board(base_board: dict[Coord, PlayerColor], piece: PlaceAction) 
         temp_board[coord] = PlayerColor.RED
     return temp_board
 
+def delete_goal_line(board: dict[Coord, PlayerColor], goal_line: list[Coord]) -> dict[Coord, PlayerColor]:
+    """
+    Delete the coordinates on the goal line from the board.
+    """
+    if goal_line[0].r == goal_line[1].r:  # check if goal line is horizontal
+        goal_line_rows = {coord.r for coord in goal_line}
+        for coord in list(board.keys()):  # create a copy of keys to iterate over
+            if coord.r in goal_line_rows:
+                del board[coord]
+    else:  # goal line is vertical
+        goal_line_cols = {coord.c for coord in goal_line}
+        for coord in list(board.keys()):  # create a copy of keys to iterate over
+            if coord.c in goal_line_cols:
+                del board[coord]
+    return board
 
 def delete_filled_lines(board: dict[Coord, PlayerColor]):
     # Get all unique row and column indices
@@ -184,7 +189,7 @@ def delete_filled_lines(board: dict[Coord, PlayerColor]):
         row_coords = [coord for coord in board.keys() if coord.r == r]
         if all(board[coord] is not None for coord in row_coords):
             # If all coordinates in the row are filled, delete them
-            for coord in row_coords:
+            for coord in row_coords.copy():  # create a copy of row_coords to iterate over
                 del board[coord]
 
     # Check each column
@@ -192,7 +197,7 @@ def delete_filled_lines(board: dict[Coord, PlayerColor]):
         col_coords = [coord for coord in board.keys() if coord.c == c]
         if all(board[coord] is not None for coord in col_coords):
             # If all coordinates in the column are filled, delete them
-            for coord in col_coords:
+            for coord in col_coords.copy():  # create a copy of col_coords to iterate over
                 del board[coord]
 
     return board
