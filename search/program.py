@@ -12,6 +12,7 @@ from .pieces import reconstruct_pieces, count_pieces
 from typing import Optional
 from math import inf
 import heapq
+from collections import deque
 
 BOARD_N = 11
 NONE_PIECE = PlaceAction(Coord(0, 0), Coord(0, 0), Coord(0, 0), Coord(0, 0))
@@ -67,6 +68,7 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
     has_solution = False
     lowest_g = inf
     
+    """
     path_h = a_star_search(board, start, h_line, goal, has_solution, lowest_g)
     path_v = a_star_search(board, start, v_line, goal, has_solution, lowest_g)
     
@@ -81,13 +83,57 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
     else:
         print("Both solutions found. Picking shortest")
         print("h:", len(path_h), "v:", len(path_v))
-        path =  path_h if len(path_h) < len(path_v) else path_v
+        path = path_h if len(path_h) < len(path_v) else path_v
+    """
+    line = h_line if len(h_line) < len(v_line) else v_line
+    path = bfs_search(board, start, line, goal)
         
     print("path:", path)
     return path
 
 # TODO: can optimise by recording valid adjacent moves in a dict
 # TODO: alter heuristic to want to cover as many goal coords in one move as possible
+
+def bfs_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_line: list[Coord], 
+               goal: Coord) -> list[PlaceAction] | None:
+    """
+    Perform a BFS search to find the shortest path from start to goal.
+    """
+    tetronimos = get_tetronimos()
+    queue = deque([(start_piece, board)])  # queue is initialized with start node
+    visited = set([frozenset(board.items())])  # visited set is initialized with start node
+    predecessors = {frozenset(board.items()): frozenset()}  # dictionary to keep track of predecessors
+
+    while queue:
+        current_piece, current_board = queue.popleft()  # node with lowest f_score is selected
+        current_board_frozen = frozenset(current_board.items())
+        # find next moves
+        for adjacent_coord in get_valid_adjacents_all_over_the_board(current_board, goal_line):
+            for move in get_valid_moves(current_board, tetronimos, adjacent_coord):
+                new_board = get_current_board(current_board, move)
+                new_board_frozen = frozenset(new_board.items())
+                if new_board_frozen in visited:
+                    continue
+                visited.add(new_board_frozen)
+                predecessors[new_board_frozen] = current_board_frozen  # update the predecessor of the new node
+                # if goal line is filled, return the path
+                if all([new_board.get(coord, None) for coord in goal_line]):
+                    print(render_board(new_board, goal, ansi=True))
+                    return reconstruct_path(predecessors, new_board)
+                queue.append((move, new_board))
+    return None
+
+def reconstruct_path(predecessors: dict, end: dict) -> list:
+    """
+    Reconstruct the path from start to end using the predecessors dictionary.
+    """
+    path = []
+    current = frozenset(end.items())
+    while current is not None:
+        path.append(dict(current))
+        current = predecessors.get(current)
+    path.reverse()  # reverse the path to get it from start to end
+    return path
 
 def a_star_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_line: list[Coord], 
                   goal: Coord, has_solution: bool, lowest_g: float) -> list[PlaceAction] | None:
