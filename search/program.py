@@ -135,6 +135,22 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                     print(render_board(new_board, goal, ansi=True))
                     print(f"Generated nodes: {generated_nodes}")
                     print(f"Duplicated nodes: {duplicated_nodes}")
+                    
+                    # check if goal line is horizontal or vertical
+                    if goal_line[0].r == goal_line[1].r:
+                        print("Goal line is horizontal")
+                        goal_line_rows = {coord.r for coord in goal_line}
+                        for coord in list(new_board.keys()):  # create a copy of keys to iterate over
+                            if coord.r in goal_line_rows:
+                                del new_board[coord]
+                    else:
+                        print("Goal line is vertical")
+                        goal_line_cols = {coord.c for coord in goal_line}
+                        for coord in list(new_board.keys()):  # create a copy of keys to iterate over
+                            if coord.c in goal_line_cols:
+                                del new_board[coord]                    
+                                
+                    print(render_board(new_board, goal, ansi=True))
                     return reconstruct_path(predecessors, new_board)
                 # calculate heuristic cost
                 heuristic_cost = calculate_heuristic(new_board, goal)
