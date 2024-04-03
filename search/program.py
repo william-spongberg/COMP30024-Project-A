@@ -89,7 +89,7 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
     line = h_line if len(h_line) < len(v_line) else v_line
     path = a_search(board, start, line, goal)
         
-    print("path:", path)
+    #print("path:", path)
     return path
 
 # TODO: can optimise by recording valid adjacent moves in a dict
@@ -161,11 +161,18 @@ def calculate_distance_to_goal_line(board, goal_line: list[Coord]):
             num_pieces += 1
     return total_distance / num_pieces if num_pieces else 0
 
+
 def calculate_pieces_above_goal_line(board, goal_line:list[Coord]):
+    """
+    Prioritise states where there are fewer pieces above the goal line, as these pieces could potentially block the goal line from being filled.
+    """
     highest_goal_coord = max(coord.r for coord in [goal_line]) # type: ignore
     return sum(1 for coord, color in board.items() if color is not None and coord.r > highest_goal_coord)
 
 def calculate_number_of_holes(board):
+    """
+    Prioritise states with fewer holes, as holes can make it more difficult to fill the goal line.
+    """
     holes = 0
     for x in range(BOARD_N):
         column = [board.get(Coord(x, y), None) for y in range(BOARD_N)]
