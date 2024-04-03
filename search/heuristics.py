@@ -3,46 +3,40 @@ from .core import PlayerColor, Coord, PlaceAction, Direction
 BOARD_N = 11
 
 # TODO: make more efficient heuristic/s
-# TODO: alter heuristic to cover multiple goal_list coords at once
-def heuristic(a: Coord, b: Coord) -> int:
+def calculate_heuristic(board, goal_line):
     """
-    Calculate the Manhattan distance between two points.
+    Calculate the heuristic cost for the given board.
+    The heuristic is the number of empty spaces in the goal line + the distance to the goal line + the number of pieces above the goal line + the number of holes.
     """
-    return min(abs(a.r - b.r), BOARD_N - abs(a.r - b.r)) + min(abs(a.c - b.c), BOARD_N - abs(a.c - b.c))
+    empty_spaces = sum(1 for coord in goal_line if board.get(coord, None) is None)
+    return empty_spaces + calculate_distance_to_goal_line(board, goal_line) + calculate_pieces_above_goal_line(board, goal_line) + calculate_number_of_holes(board)
 
-def heuristic_to_goal(board: dict[Coord, PlayerColor], goal_line: list[Coord]) -> int:
-    """
-    Calculate the heuristic to the goal graph using Manhattan distance
-    """
-    sum = 0
-    for coord in goal_line:
-        closest = closest_to_point(board, coord)
-        sum += heuristic(closest, coord)
-    return sum
+def calculate_distance_to_goal_line(board, goal_line: list[Coord]):
+    total_distance = 0
+    num_pieces = 0
+    for coord, color in board.items():
+        if color is not None:  # if there is a piece at this coordinate
+            distance = min(abs(coord.r - goal_coord.r) + abs(coord.c - goal_coord.c) for goal_coord in [goal_line]) # type: ignore
+            total_distance += distance
+            num_pieces += 1
+    return total_distance / num_pieces if num_pieces else 0
 
-def heuristic_to_line(coord: Coord, goal_line: list[Coord]) -> int:
-    """
-    Calculate the heuristic to the goal line using Manhattan distance
-    """
-    distance = -1
-    for goal in goal_line:
-        if distance == -1:
-            distance = heuristic(coord, goal)
-        elif heuristic(coord, goal) < distance:
-            distance = heuristic(coord, goal)
-    return distance
 
-def closest_to_point(board: dict[Coord, PlayerColor], point: Coord) -> Coord:
+def calculate_pieces_above_goal_line(board, goal_line:list[Coord]):
     """
-    Find the closest coordinate to the goal line.
+    Prioritise states where there are fewer pieces above the goal line, as these pieces could potentially block the goal line from being filled.
     """
-    reds = [coord for coord in board if board.get(coord, None) == PlayerColor.RED]
-    closest = reds[0]
-    for coord in reds:
-        if coord is None:
-            continue
-        if closest is None:
-            closest = coord
-        elif heuristic(coord, point) < heuristic(closest, point):
-            closest = coord
-    return closest
+    highest_goal_coord = max(coord.r for coord in [goal_line]) # type: ignore
+    return sum(1 for coord, color in board.items() if color is not None and coord.r > highest_goal_coord)
+
+def calculate_number_of_holes(board):
+    """
+    Prioritise states with fewer holes, as holes can make it more difficult to fill the goal line.
+    """
+    holes = 0
+    for x in range(BOARD_N):
+        column = [board.get(Coord(x, y), None) for y in range(BOARD_N)]
+        if None in column:
+            first_empty = column.index(None)
+            holes += sum(1 for cell in column[first_empty:] if cell is not None)
+    return holes
