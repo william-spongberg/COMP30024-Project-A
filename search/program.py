@@ -13,6 +13,7 @@ from typing import Optional, Tuple
 from math import inf
 import heapq
 from collections import deque
+from queue import PriorityQueue
 
 BOARD_N = 11
 NONE_PIECE = PlaceAction(Coord(0, 0), Coord(0, 0), Coord(0, 0), Coord(0, 0))
@@ -86,7 +87,7 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
         path = path_h if len(path_h) < len(path_v) else path_v
     """
     line = h_line if len(h_line) < len(v_line) else v_line
-    path = bfs_search(board, start, line, goal)
+    path = a_search(board, start, line, goal)
         
     print("path:", path)
     return path
@@ -94,13 +95,17 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
 # TODO: can optimise by recording valid adjacent moves in a dict
 # TODO: alter heuristic to want to cover as many goal coords in one move as possible
 
-def bfs_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_line: list[Coord], 
-               goal: Coord) -> list[PlaceAction] | None:
+def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_line: list[Coord], 
+                  goal: Coord) -> list[PlaceAction] | None:
     """
-    Perform a BFS search to find the shortest path from start to goal.
+    Perform an A* search to find the shortest path from start to goal.
     """
     tetronimos = get_tetronimos()
-    queue = deque([(start_piece, board)])  # queue is initialized with start node
+    queue = []  # queue is initialized with start node
+    board_id = 0  # unique identifier for each board
+    heapq.heappush(queue, (0, board_id))  # priority, board_id
+    board_dict = {board_id: board}  # map each board_id to its corresponding board
+    move_dict = {frozenset(board.items()): start_piece}  # map each board to its corresponding move
     visited = set([frozenset(board.items())])  # visited set is initialized with start node
     predecessors: dict[frozenset, Tuple[frozenset, PlaceAction]] = {frozenset(board.items()): (frozenset(), start_piece)}  # dictionary to keep track of predecessors
 
@@ -108,7 +113,8 @@ def bfs_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_l
     duplicated_nodes = 0
 
     while queue:
-        _, current_board = queue.popleft()  # node with lowest f_score is selected
+        _, current_board_id = heapq.heappop(queue)  # node with lowest f_score is selected
+        current_board = board_dict[current_board_id]
         current_board_frozen = frozenset(current_board.items())
         # find next moves
         for adjacent_coord in get_valid_adjacents_all_over_the_board(current_board, goal_line):
@@ -120,6 +126,9 @@ def bfs_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_l
                     duplicated_nodes += 1
                     continue
                 visited.add(new_board_frozen)
+                board_id += 1
+                board_dict[board_id] = new_board  # update the board for the new board_id
+                move_dict[new_board_frozen] = move  # update the move for the new board
                 predecessors[new_board_frozen] = (current_board_frozen, move)  # update the predecessor of the new node
                 # if goal line is filled, return the path
                 if all([new_board.get(coord, None) for coord in goal_line]):
@@ -127,10 +136,43 @@ def bfs_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_l
                     print(f"Generated nodes: {generated_nodes}")
                     print(f"Duplicated nodes: {duplicated_nodes}")
                     return reconstruct_path(predecessors, new_board)
-                queue.append((move, new_board))
+                # calculate heuristic cost
+                heuristic_cost = calculate_heuristic(new_board, goal)
+                heapq.heappush(queue, (heuristic_cost, board_id))
     print(f"Generated nodes: {generated_nodes}")
     print(f"Duplicated nodes: {duplicated_nodes}")
     return None
+
+def calculate_heuristic(board, goal_line):
+    """
+    Calculate the heuristic cost for the given board.
+    The heuristic is the number of empty spaces in the goal line.
+    """
+    empty_spaces = sum(1 for coord in goal_line if board.get(coord, None) is None)
+    return empty_spaces + calculate_distance_to_goal_line(board, goal_line) + calculate_pieces_above_goal_line(board, goal_line) + calculate_number_of_holes(board)
+
+def calculate_distance_to_goal_line(board, goal_line: list[Coord]):
+    total_distance = 0
+    num_pieces = 0
+    for coord, color in board.items():
+        if color is not None:  # if there is a piece at this coordinate
+            distance = min(abs(coord.r - goal_coord.r) + abs(coord.c - goal_coord.c) for goal_coord in [goal_line]) # type: ignore
+            total_distance += distance
+            num_pieces += 1
+    return total_distance / num_pieces if num_pieces else 0
+
+def calculate_pieces_above_goal_line(board, goal_line:list[Coord]):
+    highest_goal_coord = max(coord.r for coord in [goal_line]) # type: ignore
+    return sum(1 for coord, color in board.items() if color is not None and coord.r > highest_goal_coord)
+
+def calculate_number_of_holes(board):
+    holes = 0
+    for x in range(BOARD_N):
+        column = [board.get(Coord(x, y), None) for y in range(BOARD_N)]
+        if None in column:
+            first_empty = column.index(None)
+            holes += sum(1 for cell in column[first_empty:] if cell is not None)
+    return holes
 
 def reconstruct_path(predecessors: dict, end: dict) -> list:
     """
