@@ -9,7 +9,7 @@ from .movements import get_valid_moves, get_valid_adjacents_all_over_the_board, 
 from .lines import construct_horizontal_line, construct_vertical_line
 from .pieces import reconstruct_pieces, count_pieces
 
-from typing import Optional
+from typing import Optional, Tuple
 from math import inf
 import heapq
 from collections import deque
@@ -102,13 +102,13 @@ def bfs_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_l
     tetronimos = get_tetronimos()
     queue = deque([(start_piece, board)])  # queue is initialized with start node
     visited = set([frozenset(board.items())])  # visited set is initialized with start node
-    predecessors = {frozenset(board.items()): frozenset()}  # dictionary to keep track of predecessors
+    predecessors: dict[frozenset, Tuple[frozenset, PlaceAction]] = {frozenset(board.items()): (frozenset(), start_piece)}  # dictionary to keep track of predecessors
 
     generated_nodes = 0
     duplicated_nodes = 0
 
     while queue:
-        current_piece, current_board = queue.popleft()  # node with lowest f_score is selected
+        _, current_board = queue.popleft()  # node with lowest f_score is selected
         current_board_frozen = frozenset(current_board.items())
         # find next moves
         for adjacent_coord in get_valid_adjacents_all_over_the_board(current_board, goal_line):
@@ -120,7 +120,7 @@ def bfs_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_l
                     duplicated_nodes += 1
                     continue
                 visited.add(new_board_frozen)
-                predecessors[new_board_frozen] = current_board_frozen  # update the predecessor of the new node
+                predecessors[new_board_frozen] = (current_board_frozen, move)  # update the predecessor of the new node
                 # if goal line is filled, return the path
                 if all([new_board.get(coord, None) for coord in goal_line]):
                     print(render_board(new_board, goal, ansi=True))
@@ -139,8 +139,9 @@ def reconstruct_path(predecessors: dict, end: dict) -> list:
     path = []
     current = frozenset(end.items())
     while current is not None:
-        path.append(dict(current))
-        current = predecessors.get(current)
+        current, action = predecessors.get(current, (None, None))
+        if action is not None:
+            path.append(action)
     path.reverse()  # reverse the path to get it from start to end
     return path
 
