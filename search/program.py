@@ -83,6 +83,7 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
     visited = set([frozenset(board.items())])  # visited set is initialized with start node
     predecessors: dict[frozenset, Tuple[frozenset, PlaceAction]] = {frozenset(board.items()): (frozenset(), start_piece)}  # dictionary to keep track of predecessors
 
+    # tried to use it but not in use for now
     g = {frozenset(board.items()): 0}  # cost from start to current node
 
     generated_nodes = 0

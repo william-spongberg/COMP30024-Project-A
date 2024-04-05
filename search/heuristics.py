@@ -9,7 +9,9 @@ def calculate_heuristic(board, goal_line):
     The heuristic is the number of empty spaces in the goal line + the distance to the goal line + the number of pieces above the goal line + the number of holes.
     """
     empty_spaces = sum(1 for coord in goal_line if board.get(coord, None) is None)
+    # tried to emphasize the importance of empty spaces
     return pow(empty_spaces * 10, 2) + calculate_distance_to_goal_line(board, goal_line) 
+# find out that the two heuristics is not working as expected, so I comment them
 # + calculate_pieces_above_goal_line(board, goal_line) + calculate_number_of_holes(board)
 
 def calculate_distance_to_goal_line(board, goal_line: list[Coord]):
@@ -23,16 +25,22 @@ def calculate_distance_to_goal_line(board, goal_line: list[Coord]):
     return total_distance / num_pieces if num_pieces else 0
 
 def calculate_move_heuristic(board, goal_line, move:PlaceAction):
+    """
+    Calculate the heuristic of a given move.
+    """
     total_distance = 0
     num_pieces = 0
     temp_board = board.copy()
+    # update immediately so that rest coords wont consider goal been filled in this move
     temp_board.update({coord: PlayerColor.RED for coord in move.coords})
     for coord in move.coords:
         if (coord not in goal_line):
+            # only check rest unfilled goal line, so that the move intends to approach rest space
             total_distance += sum(distance_between_coords(goal_coord, coord) for goal_coord in goal_line if goal_coord not in temp_board)
         num_pieces += 1
     return total_distance / num_pieces if num_pieces else 0
 
+# not working and I wonder why it only has single direction
 def calculate_pieces_above_goal_line(board, goal_line:list[Coord]):
     """
     Prioritise states where there are fewer pieces above the goal line, as these pieces could potentially block the goal line from being filled.
@@ -40,7 +48,7 @@ def calculate_pieces_above_goal_line(board, goal_line:list[Coord]):
     highest_goal_coord = max(coord.r for coord in goal_line)
     return sum(1 for coord, color in board.items() if color is not None and coord.r > highest_goal_coord)
 
-
+# holes are good for avaliable moves. I tried to minus this number and seems a little bit better. Not tested on the complete tetronimos
 def calculate_number_of_holes(board):
     """
     Prioritise states with fewer holes, as holes can make it more difficult to fill the goal line.
@@ -54,6 +62,9 @@ def calculate_number_of_holes(board):
     return holes
 
 def distance_between_coords(coord1, coord2):
+    """
+    Helper function to calculate the Manhattan distance between two coordinates. In case the BOARD_N is forgotten in calculation. 
+    """
     row = min(abs(coord1.r - coord2.r), BOARD_N - abs(coord1.r - coord2.r))
     col = min(abs(coord1.c - coord2.c), BOARD_N - abs(coord1.c - coord2.c))
     return row + col
