@@ -4,7 +4,7 @@
 from .core import PlayerColor, Coord, PlaceAction, Direction
 from .utils import render_board
 from .tetronimos import get_tetronimos
-from .heuristics import calculate_heuristic
+from .heuristics import calculate_heuristic, calculate_move_heuristic
 from .movements import get_valid_moves, get_valid_adjacents_all_over_the_board
 from .lines import construct_horizontal_line, construct_vertical_line
 
@@ -121,9 +121,16 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                     
                     # for debug
                     result_board = board.copy()
+                    print(render_board(result_board, goal, ansi=True))
                     for action in path[1:]:
                         result_board = get_current_board(result_board, action)
                         print(render_board(result_board, goal, ansi=True))
+                    # test tetronimos
+                    # empty_board = {}
+                    # for action in tetronimos:
+                    #     center_coord = Coord(5, 5)
+                    #     action = PlaceAction(*[center_coord + coord for coord in action.coords])
+                    #     print(render_board(get_current_board(empty_board, action), goal, ansi=True))
                         
                     return path[1:]  # remove the start move
                 new_board = delete_filled_lines(new_board)
@@ -141,7 +148,8 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                 #     return path[1:]  # remove the start move
                 
                 # calculate heuristic cost
-                heuristic_cost = calculate_heuristic(new_board, goal_line) + 4 * g[new_board_frozen]
+                # heuristic_cost = calculate_heuristic(new_board, goal_line) + 4 * g[new_board_frozen]
+                heuristic_cost = calculate_move_heuristic(new_board, goal_line, move) + calculate_heuristic(board, goal_line)
                 heapq.heappush(queue, (heuristic_cost, board_id))
                 
                 print(render_board(new_board, goal, ansi=True))

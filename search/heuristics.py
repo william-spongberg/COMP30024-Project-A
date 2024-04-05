@@ -22,6 +22,17 @@ def calculate_distance_to_goal_line(board, goal_line: list[Coord]):
             num_pieces += 1
     return total_distance / num_pieces if num_pieces else 0
 
+def calculate_move_heuristic(board, goal_line, move:PlaceAction):
+    total_distance = 0
+    num_pieces = 0
+    temp_board = board.copy()
+    temp_board.update({coord: PlayerColor.RED for coord in move.coords})
+    for coord in move.coords:
+        if (coord not in goal_line):
+            total_distance += sum(distance_between_coords(goal_coord, coord) for goal_coord in goal_line if goal_coord not in temp_board)
+        num_pieces += 1
+    return total_distance / num_pieces if num_pieces else 0
+
 def calculate_pieces_above_goal_line(board, goal_line:list[Coord]):
     """
     Prioritise states where there are fewer pieces above the goal line, as these pieces could potentially block the goal line from being filled.
