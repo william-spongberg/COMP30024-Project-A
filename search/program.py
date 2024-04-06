@@ -117,8 +117,6 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                     print(f"Duplicated nodes: {duplicated_nodes}")
                     
                     path = reconstruct_path(predecessors, new_board)
-                    new_board = delete_goal_line(new_board, goal_line)
-                    print(render_board(new_board, goal, ansi=True))
                     
                     # for debug
                     result_board = board.copy()
@@ -126,6 +124,9 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                     for action in path[1:]:
                         result_board = get_current_board(result_board, action)
                         print(render_board(result_board, goal, ansi=True))
+                    new_board = delete_goal_line(new_board, goal_line)
+                    print(render_board(new_board, goal, ansi=True))
+                    
                     # test tetronimos
                     # empty_board = {}
                     # for action in tetronimos:
@@ -134,22 +135,8 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                     #     print(render_board(get_current_board(empty_board, action), goal, ansi=True))
                         
                     return path[1:]  # remove the start move
+                
                 new_board = delete_filled_lines(new_board)
-                
-                # if (goal not in board):
-                #     print(render_board(new_board, goal, ansi=True))
-                #     print(f"Generated nodes: {generated_nodes}")
-                #     print(f"Duplicated nodes: {duplicated_nodes}")
-                    
-                #     path = reconstruct_path(predecessors, new_board)
-                #     result_board = {}
-                #     for action in path:
-                #         result_board = get_current_board(result_board, action)
-                #         print(render_board(result_board, goal, ansi=True))
-                #     return path[1:]  # remove the start move
-                
-                # calculate heuristic cost
-                # heuristic_cost = calculate_heuristic(new_board, goal_line) + 4 * g[new_board_frozen]
                 heuristic_cost = calculate_move_heuristic(new_board, goal_line, move) + calculate_heuristic(board, goal_line)
                 heapq.heappush(queue, (heuristic_cost, board_id))
                 
@@ -216,25 +203,6 @@ def delete_goal_line(board: dict[Coord, PlayerColor], goal_line: list[Coord]) ->
     return board
 
 def delete_filled_lines(board: dict[Coord, PlayerColor]):
-    # Get all unique row and column indices
-    # rows = {coord.r for coord in board.keys()}
-    # cols = {coord.c for coord in board.keys()}
-
-    # # Check each row
-    # for r in rows:
-    #     row_coords = [coord for coord in board.keys() if coord.r == r]
-    #     if all(board[coord] is not None for coord in row_coords):
-    #         # If all coordinates in the row are filled, delete them
-    #         for coord in row_coords.copy():  # create a copy of row_coords to iterate over
-    #             board.pop(coord)
-
-    # # Check each column
-    # for c in cols:
-    #     col_coords = [coord for coord in board.keys() if coord.c == c]
-    #     if all(board[coord] is not None for coord in col_coords):
-    #         # If all coordinates in the column are filled, delete them
-    #         for coord in col_coords.copy():  # create a copy of col_coords to iterate over
-    #             board.pop(coord)
     coords_to_remove = []
     for r in range(BOARD_N):
         row_coords = construct_horizontal_line(Coord(r, 0), board)
