@@ -97,6 +97,7 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
         for adjacent_coord in get_valid_adjacents_all_over_the_board(current_board, goal_line):
             for move in get_valid_moves(current_board, tetronimos, adjacent_coord):
                 new_board = get_current_board(current_board, move)
+                new_board = delete_filled_lines(new_board)
                 new_board_frozen = frozenset(new_board.items())
                 generated_nodes += 1
                 if new_board_frozen in visited:
@@ -110,8 +111,8 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                 predecessors[new_board_frozen] = (current_board_frozen, move)  # update the predecessor of the new node
                 g[new_board_frozen] = g[current_board_frozen] + 1  # update the cost from start to current node
                 
-                # if goal line is filled, return the path
-                if all([new_board.get(coord, None) for coord in goal_line]):
+                # if goal coord has been removed from board
+                if goal not in new_board:
                     print(render_board(new_board, goal, ansi=True))
                     print(f"Generated nodes: {generated_nodes}")
                     print(f"Duplicated nodes: {duplicated_nodes}")
@@ -126,6 +127,8 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                         print(render_board(result_board, goal, ansi=True))
                     new_board = delete_goal_line(new_board, goal_line)
                     print(render_board(new_board, goal, ansi=True))
+                    print(f"Generated nodes: {generated_nodes}")
+                    print(f"Duplicated nodes: {duplicated_nodes}")
                     
                     # test tetronimos
                     # empty_board = {}
@@ -136,15 +139,14 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                         
                     return path[1:]  # remove the start move
                 
-                new_board = delete_filled_lines(new_board)
+                #if new_board != delete_filled_lines(new_board):
+                
                 heuristic_cost = calculate_move_heuristic(new_board, goal_line, move) + calculate_heuristic(board, goal_line)
                 heapq.heappush(queue, (heuristic_cost, board_id))
                 
                 print(render_board(new_board, goal, ansi=True))
                 print(f"Generated nodes: {generated_nodes}")
                 print(f"Duplicated nodes: {duplicated_nodes}")
-    print(f"Generated nodes: {generated_nodes}")
-    print(f"Duplicated nodes: {duplicated_nodes}")
     return None
 
 def reconstruct_path(predecessors: dict, end: dict) -> list:
@@ -205,19 +207,18 @@ def delete_goal_line(board: dict[Coord, PlayerColor], goal_line: list[Coord]) ->
 def delete_filled_lines(board: dict[Coord, PlayerColor]):
     coords_to_remove = []
     for r in range(BOARD_N):
-        row_coords = construct_horizontal_line(Coord(r, 0), board)
+        row_coords = [Coord(r, c) for c in range(BOARD_N)]
         if all(coord in board for coord in row_coords):
             # If all coordinates in the row are filled, delete them
-            for coord in row_coords:
-                coords_to_remove.append(coord)
+            coords_to_remove.extend(row_coords)
     for c in range(BOARD_N):
-        col_coords = construct_vertical_line(Coord(0, c), board)
+        col_coords = [Coord(r, c) for r in range(BOARD_N)]
         if all(coord in board for coord in col_coords):
             # If all coordinates in the column are filled, delete them
-            for coord in col_coords:
-                coords_to_remove.append(coord)
+            coords_to_remove.extend(col_coords)
     for coord in coords_to_remove:
-        board.pop(coord)
+        board.pop(coord, None)
+        #board[coord] = None
     return board
 
 def delete_changed_lines(board: dict[Coord, PlayerColor], changed: Coord) -> dict[Coord, PlayerColor]:
