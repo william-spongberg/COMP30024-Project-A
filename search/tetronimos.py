@@ -1,4 +1,4 @@
-from .core import PlayerColor, Coord, PlaceAction, Direction
+from .core import Coord, PlaceAction
 
 BOARD_N = 11
 
