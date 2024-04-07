@@ -26,10 +26,10 @@ def coord_distance_to_goal_line(goal_line: list[Coord], coord: Coord):
 
 def board_distance_to_goal_line(board: dict[Coord, PlayerColor], goal_line: list[Coord]):
     """
-    Calculate the distance from a move to the closest goal line coord.
+    Calculate the distance of cloest point to the furthest goal line coord.
     """
-    return min(abs(coord.r - goal_coord.r) + abs(coord.c - goal_coord.c)
-        for coord in board if board[coord] == PlayerColor.RED
+    return max(min(abs(coord.r - goal_coord.r) + abs(coord.c - goal_coord.c)
+        for coord in board if board[coord] == PlayerColor.RED)
         for goal_coord in goal_line if board.get(goal_coord, None) == None)
 
 
@@ -50,11 +50,11 @@ def calculate_heuristic(
     col_line = construct_vertical_line(goal, board)
     row_heuristic = (goal_line_completion(board, row_line)
         + board_distance_to_goal_line(board, row_line)
-        # + path_distance_to_goal_line(board, row_line)
+        + path_distance_to_goal_line(board, row_line)
         )
     col_heuristic = (goal_line_completion(board, col_line)
         + board_distance_to_goal_line(board, col_line)
-        # + path_distance_to_goal_line(board, col_line)
+        + path_distance_to_goal_line(board, col_line)
         )
     return min(row_heuristic, col_heuristic)
 
@@ -65,7 +65,7 @@ def no_horizontal_obstacles_in_the_way(board: dict[Coord, PlayerColor], move_coo
     Check if there are any obstacles in the way of a horizontal move.
     """
     for c in range(min(move_coord.c, goal_coord.c) + 1, max(move_coord.c, goal_coord.c)):
-        if board.get(Coord(move_coord.r, c), None) is not None:
+        if board.get(Coord(move_coord.r, c), None) is PlayerColor.BLUE:
             return False
     return True
 
@@ -74,26 +74,9 @@ def no_vertical_obstacles_in_the_way(board: dict[Coord, PlayerColor], move_coord
     Check if there are any obstacles in the way of a vertical move.
     """
     for r in range(min(move_coord.r, goal_coord.r) + 1, max(move_coord.r, goal_coord.r)):
-        if board.get(Coord(r, move_coord.c), None) is not None:
+        if board.get(Coord(r, move_coord.c), None) is not PlayerColor.BLUE:
             return False
     return True
-
-def no_obstacles_in_the_way(board: dict[Coord, PlayerColor], move_coord: Coord, goal_coord: Coord):
-    """
-    Check if there are any obstacles in the way of a move and a goal coord.
-    """
-    if move_coord.r == goal_coord.r:
-        # check if there are any obstacles in the way of a horizontal move
-        for c in range(min(move_coord.c, goal_coord.c) + 1, max(move_coord.c, goal_coord.c)):
-            if board.get(Coord(move_coord.r, c), None) is not None:
-                return False
-    else:
-        # check if there are any obstacles in the way of a vertical move
-        for r in range(min(move_coord.r, goal_coord.r) + 1, max(move_coord.r, goal_coord.r)):
-            if board.get(Coord(r, move_coord.c), None) is not None:
-                return False
-    return True
-
 
 def path_distance_to_goal_line(board: dict[Coord, PlayerColor], goal_line: list[Coord]):
     """
