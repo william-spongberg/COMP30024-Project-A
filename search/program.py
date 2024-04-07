@@ -81,7 +81,7 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
 
     # tried to use it but not in use for now
     g = {frozenset(board.items()): 0}  # cost from start to current node
-    f = {frozenset(board.items()): calculate_heuristic(board, goal_line, start_piece)}  # f = g + h
+    f = {frozenset(board.items()): calculate_heuristic(board, goal_line, [start_piece])}  # f = g + h
 
     generated_nodes = 0
     duplicated_nodes = 0
@@ -136,7 +136,8 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                         
                     return path[1:]  # remove the start move
                 
-                heuristic_cost = calculate_heuristic(new_board, goal_line, move)
+                path = reconstruct_path(predecessors, new_board)
+                heuristic_cost = calculate_heuristic(new_board, goal_line, path)
                 f[new_board_frozen] = g[new_board_frozen] + heuristic_cost
                 heapq.heappush(queue, (f[new_board_frozen], board_id))
                 
@@ -145,7 +146,7 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                 print(f"Duplicated nodes: {duplicated_nodes}")
     return None
 
-def reconstruct_path(predecessors: dict, end: dict) -> list:
+def reconstruct_path(predecessors: dict, end: dict) -> list[PlaceAction]:
     """
     Reconstruct the path from start to end using the predecessors dictionary.
     """
@@ -157,22 +158,6 @@ def reconstruct_path(predecessors: dict, end: dict) -> list:
             path.append(action)
     path.reverse()  # reverse the path to get it from start to end
     return path
-
-def empty_space_around_coord(board: dict[Coord, PlayerColor], coord: Coord, count: int) -> int:
-    """
-    Count the number of empty spaces around a coordinate.
-    """
-    directions = [coord.up(), coord.down(), coord.left(), coord.right()]
-    adjacents = [Coord(dir.r, dir.c) for dir in directions]
-    for adjacent in adjacents:
-        if not board.get(adjacent, None): # if adjacent is empty
-            count += 1
-            if (count >= 4):
-                return count % 5
-            count += empty_space_around_coord(board, adjacent, count)
-            if (count >= 4):
-                return count % 5
-    return count % 5
 
 def get_current_board(base_board: dict[Coord, PlayerColor], piece: PlaceAction) -> dict[Coord, PlayerColor]:
     """
