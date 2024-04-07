@@ -4,7 +4,7 @@
 from .core import PlayerColor, Coord, PlaceAction
 from .utils import render_board
 from .tetronimos import get_tetronimos
-from .heuristics import calculate_heuristic
+from .heuristics import *
 from .movements import get_valid_moves, get_valid_adjacents_all_over_the_board
 from .lines import construct_horizontal_line, construct_vertical_line, delete_goal_line, delete_filled_lines
 
@@ -12,7 +12,7 @@ from typing import Tuple
 import heapq
 
 BOARD_N = 11
-NONE_PIECE = PlaceAction(Coord(0, 0), Coord(0, 0), Coord(0, 0), Coord(0, 0))
+MAX_PIECE_LENGTH = 4
 
 def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | None:
     """
@@ -106,7 +106,7 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                 board_dict[board_id] = new_board  # update the board for the new board_id
                 move_dict[new_board_frozen] = move  # update the move for the new board
                 predecessors[new_board_frozen] = (current_board_frozen, move)  # update the predecessor of the new node
-                g[new_board_frozen] = g[current_board_frozen] + 1  # update the cost from start to current node
+                g[new_board_frozen] = g[current_board_frozen] + MAX_PIECE_LENGTH # update the cost from start to current node
                 
                 # if goal coord has been removed from board
                 if goal not in new_board:
