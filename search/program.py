@@ -4,9 +4,9 @@
 from .core import PlayerColor, Coord, PlaceAction
 from .utils import render_board
 from .tetronimos import get_tetronimos
-from .heuristics import calculate_heuristic
+from .heuristics import calculate_board_heuristic
 from .movements import get_valid_moves, get_valid_adjacents_all_over_the_board
-from .lines import construct_horizontal_line, construct_vertical_line, delete_goal_line, delete_filled_lines
+from .lines import delete_filled_lines
 
 from typing import Tuple
 import heapq
@@ -57,15 +57,11 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
     
     print("start:", start)    
     
-    h_line = construct_horizontal_line(goal, board)
-    v_line = construct_vertical_line(goal, board)
-
-    line = h_line if len(h_line) < len(v_line) else v_line
-    path = a_search(board, start, line, goal)
+    path = a_search(board, start, goal)
     
     return path
 
-def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_line: list[Coord], 
+def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, 
                   goal: Coord) -> list[PlaceAction] | None:
     """
     Perform an A* search to find the shortest path from start to goal.
@@ -81,7 +77,7 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
 
     # tried to use it but not in use for now
     g = {frozenset(board.items()): 0}  # cost from start to current node
-    f = {frozenset(board.items()): calculate_heuristic(board, goal_line, [start_piece])}  # f = g + h
+    f = {frozenset(board.items()): calculate_board_heuristic(board, goal)}  # f = g + h
 
     generated_nodes = 0
     duplicated_nodes = 0
@@ -91,7 +87,7 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
         current_board = board_dict[current_board_id]
         current_board_frozen = frozenset(current_board.items())
         # find next moves
-        for adjacent_coord in get_valid_adjacents_all_over_the_board(current_board, goal_line):
+        for adjacent_coord in get_valid_adjacents_all_over_the_board(current_board):
             for move in get_valid_moves(current_board, tetronimos, adjacent_coord):
                 new_board = get_current_board(current_board, move)
                 new_board = delete_filled_lines(new_board)
@@ -119,11 +115,12 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                     # for debug
                     result_board = board.copy()
                     print(render_board(result_board, goal, ansi=True))
-                    for action in path[1:]:
+                    for action in path[1:-1]:
                         result_board = get_current_board(result_board, action)
+                        delete_filled_lines(result_board)
                         print(render_board(result_board, goal, ansi=True))
-                    new_board = delete_goal_line(new_board, goal_line)
-                    print(render_board(new_board, goal, ansi=True))
+                    result_board = get_current_board(result_board, path[-1])
+                    print(render_board(result_board, goal, ansi=True))
                     print(f"Generated nodes: {generated_nodes}")
                     print(f"Duplicated nodes: {duplicated_nodes}")
                     
@@ -137,7 +134,7 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                     return path[1:]  # remove the start move
                 
                 path = reconstruct_path(predecessors, new_board)
-                heuristic_cost = calculate_heuristic(new_board, goal_line, path)
+                heuristic_cost = calculate_board_heuristic(new_board, goal)
                 f[new_board_frozen] = g[new_board_frozen] + heuristic_cost
                 heapq.heappush(queue, (f[new_board_frozen], board_id))
                 

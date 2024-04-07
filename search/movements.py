@@ -15,7 +15,7 @@ def get_valid_moves(board: dict[Coord, PlayerColor], tetronimos: list[PlaceActio
     #print(valid_moves)
     return valid_moves
 
-def get_valid_adjacents_all_over_the_board(board: dict[Coord, PlayerColor], goal_line: list[Coord]) -> list[Coord]:
+def get_valid_adjacents_all_over_the_board(board: dict[Coord, PlayerColor]) -> list[Coord]:
     """
     Get valid adjacent coordinates from all over the board.
     """
@@ -27,8 +27,6 @@ def get_valid_adjacents_all_over_the_board(board: dict[Coord, PlayerColor], goal
             for adjacent in adjacents:
                 if not board.get(adjacent, None): # if adjacent is empty
                     valid_adjacents.append(adjacent)
-    # rearrage list to order by distance to goal list
-    # valid_adjacents.sort(key=lambda x: heuristic_to_line(x, goal_line))
     return valid_adjacents
 
 def is_valid(board: dict[Coord, PlayerColor], piece: PlaceAction) -> bool:
