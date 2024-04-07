@@ -4,7 +4,7 @@
 from .core import PlayerColor, Coord, PlaceAction
 from .utils import render_board
 from .tetronimos import get_tetronimos
-from .heuristics import calculate_heuristic, calculate_move_heuristic
+from .heuristics import calculate_heuristic
 from .movements import get_valid_moves, get_valid_adjacents_all_over_the_board
 from .lines import construct_horizontal_line, construct_vertical_line, delete_goal_line, delete_filled_lines
 
