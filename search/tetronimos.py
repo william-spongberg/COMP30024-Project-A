@@ -10,7 +10,8 @@ def get_tetronimos() -> list[PlaceAction]:
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(2, 0), Coord(3, 0)),  # I (straight)
         PlaceAction(Coord(BOARD_N-1, 0), Coord(0, 0), Coord(1, 0), Coord(2, 0)), # center shift down 1
         PlaceAction(Coord(BOARD_N-2, 0), Coord(BOARD_N-1, 0), Coord(0, 0), Coord(1, 0)), # center shift down 2
-        PlaceAction(Coord(BOARD_N-3, 0), Coord(BOARD_N-2, 0), Coord(BOARD_N-1, 0), Coord(0, 0)), # center shift down 3
+        # last case included in rotated tetronimos
+        # PlaceAction(Coord(BOARD_N-3, 0), Coord(BOARD_N-2, 0), Coord(BOARD_N-1, 0), Coord(0, 0)), # center shift down 3
         
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(2, 0), Coord(1, 1)),  # T (T-shape)
         PlaceAction(Coord(BOARD_N-1, 0), Coord(0, 0), Coord(1, 0), Coord(0, 1)), # center shift down 1
@@ -19,13 +20,13 @@ def get_tetronimos() -> list[PlaceAction]:
         
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(1, 1), Coord(2, 1)),  # S (S-shape)
         PlaceAction(Coord(BOARD_N-1, 0), Coord(0, 0), Coord(0, 1), Coord(1, 1)), # center shift down 1
-        PlaceAction(Coord(BOARD_N-1, BOARD_N-1), Coord(0, BOARD_N-1), Coord(0, 0), Coord(1, 0)), # center shift down 1 right 1
+        # PlaceAction(Coord(BOARD_N-1, BOARD_N-1), Coord(0, BOARD_N-1), Coord(0, 0), Coord(1, 0)), # center shift down 1 right 1
         # last case included in rotated tetronimos
         # PlaceAction(Coord(BOARD_N-2, BOARD_N-1), Coord(BOARD_N-1, BOARD_N-1), Coord(BOARD_N-1, 0), Coord(0, 0)), # center shift down 2 right 1
         
         PlaceAction(Coord(0, 0), Coord(0, 1), Coord(1, 1), Coord(1, 2)), # Z (Z-shape)
         PlaceAction(Coord(0, BOARD_N-1), Coord(0, 0), Coord(1, 0), Coord(1, 1)), # center shift right 1
-        PlaceAction(Coord(BOARD_N-1, BOARD_N-1), Coord(BOARD_N-1, 0), Coord(0, 0), Coord(0, 1)), # center shift right 1 down 1
+        # PlaceAction(Coord(BOARD_N-1, BOARD_N-1), Coord(BOARD_N-1, 0), Coord(0, 0), Coord(0, 1)), # center shift right 1 down 1
         # last case included in rotated tetronimos
         # PlaceAction(Coord(BOARD_N-1, BOARD_N-2), Coord(BOARD_N-1, BOARD_N-1), Coord(0, BOARD_N-1), Coord(0, 0)), # center shift right 2 down 1
         
