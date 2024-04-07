@@ -4,7 +4,7 @@
 from .core import PlayerColor, Coord, PlaceAction
 from .utils import render_board
 from .tetronimos import get_tetronimos
-from .heuristics import calculate_board_heuristic
+from .heuristics import calculate_heuristic
 from .movements import get_valid_moves, get_valid_adjacents_all_over_the_board
 from .lines import delete_filled_lines
 
@@ -77,7 +77,7 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction,
 
     # tried to use it but not in use for now
     g = {frozenset(board.items()): 0}  # cost from start to current node
-    f = {frozenset(board.items()): calculate_board_heuristic(board, goal)}  # f = g + h
+    f = {frozenset(board.items()): calculate_heuristic(board, goal, start_piece)}  # f = g + h
 
     generated_nodes = 0
     duplicated_nodes = 0
@@ -102,7 +102,7 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction,
                 board_dict[board_id] = new_board  # update the board for the new board_id
                 move_dict[new_board_frozen] = move  # update the move for the new board
                 predecessors[new_board_frozen] = (current_board_frozen, move)  # update the predecessor of the new node
-                g[new_board_frozen] = g[current_board_frozen] + 1  # update the cost from start to current node
+                g[new_board_frozen] = g[current_board_frozen] + 4  # update the cost from start to current node
                 
                 # if goal coord has been removed from board
                 if goal not in new_board:
@@ -133,14 +133,16 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction,
                         
                     return path[1:]  # remove the start move
                 
-                path = reconstruct_path(predecessors, new_board)
-                heuristic_cost = calculate_board_heuristic(new_board, goal)
+                # path = reconstruct_path(predecessors, new_board)
+                heuristic_cost = calculate_heuristic(new_board, goal, move)
                 f[new_board_frozen] = g[new_board_frozen] + heuristic_cost
                 heapq.heappush(queue, (f[new_board_frozen], board_id))
                 
                 print(render_board(new_board, goal, ansi=True))
                 print(f"Generated nodes: {generated_nodes}")
                 print(f"Duplicated nodes: {duplicated_nodes}")
+                print(f"Current g: {g[new_board_frozen]}")
+                print(f"Current h: {heuristic_cost}")
     return None
 
 def reconstruct_path(predecessors: dict, end: dict) -> list[PlaceAction]:
