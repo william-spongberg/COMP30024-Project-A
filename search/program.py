@@ -60,12 +60,12 @@ def search(board: dict[Coord, PlayerColor], goal: Coord) -> list[PlaceAction] | 
     h_line = construct_horizontal_line(goal, board)
     v_line = construct_vertical_line(goal, board)
 
-    line = h_line if len(h_line) < len(v_line) else v_line
-    path = a_search(board, start, line, goal)
+    #line = h_line if len(h_line) < len(v_line) else v_line
+    path = a_search(board, start, h_line, v_line, goal)
     
     return path
 
-def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_line: list[Coord], 
+def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, h_line: list[Coord], v_line: list[Coord], 
                   goal: Coord) -> list[PlaceAction] | None:
     """
     Perform an A* search to find the shortest path from start to goal.
@@ -79,7 +79,10 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
     visited = set([frozenset(board.items())])  # visited set is initialized with start node
     predecessors: dict[frozenset, Tuple[frozenset, PlaceAction]] = {frozenset(board.items()): (frozenset(), start_piece)}  # dictionary to keep track of predecessors
 
-    # tried to use it but not in use for now
+    # search is sub-optimal if relying on heuristic to select line
+    #goal_line = h_line if calculate_heuristic(board, h_line, [start_piece]) < calculate_heuristic(board, v_line, [start_piece]) else v_line
+    goal_line = h_line if len(h_line) < len(v_line) else v_line
+    
     g = {frozenset(board.items()): 0}  # cost from start to current node
     f = {frozenset(board.items()): calculate_heuristic(board, goal_line, [start_piece])}  # f = g + h
 
@@ -122,6 +125,7 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                     for action in path[1:]:
                         result_board = get_current_board(result_board, action)
                         print(render_board(result_board, goal, ansi=True))
+   
                     new_board = delete_goal_line(new_board, goal_line)
                     print(render_board(new_board, goal, ansi=True))
                     print(f"Generated nodes: {generated_nodes}")
@@ -138,12 +142,15 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction, goal_lin
                 
                 path = reconstruct_path(predecessors, new_board)
                 heuristic_cost = calculate_heuristic(new_board, goal_line, path)
-                f[new_board_frozen] = g[new_board_frozen] + heuristic_cost
+                f[new_board_frozen] = g[new_board_frozen] + heuristic_cost - MAX_PIECE_LENGTH
                 heapq.heappush(queue, (f[new_board_frozen], board_id))
                 
                 print(render_board(new_board, goal, ansi=True))
                 print(f"Generated nodes: {generated_nodes}")
                 print(f"Duplicated nodes: {duplicated_nodes}")
+                print("g:", g[new_board_frozen])
+                print("h:", heuristic_cost)
+                print("estimated number of pieces:", f[new_board_frozen]/MAX_PIECE_LENGTH)
     return None
 
 def reconstruct_path(predecessors: dict, end: dict) -> list[PlaceAction]:
