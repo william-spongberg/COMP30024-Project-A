@@ -75,8 +75,8 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction,
     visited = set([frozenset(board.items())])  # visited set is initialized with start node
     predecessors: dict[frozenset, Tuple[frozenset, PlaceAction]] = {frozenset(board.items()): (frozenset(), start_piece)}  # dictionary to keep track of predecessors
 
-    g = {frozenset(board.items()): 0}  # cost from start to current node
-    f = {frozenset(board.items()): calculate_heuristic(board, goal, start_piece)}  # f = g + h
+    g = {frozenset(board.items()): len(start_piece.coords)}  # cost from start to current node
+    f = {frozenset(board.items()): calculate_heuristic(board, goal, start_piece, [start_piece])}  # f = g + h
 
     generated_nodes = 0
     duplicated_nodes = 0
@@ -133,7 +133,7 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction,
                     return path[1:]  # remove the start move
                 
                 # path = reconstruct_path(predecessors, new_board)
-                heuristic_cost = calculate_heuristic(new_board, goal, move)
+                heuristic_cost = calculate_heuristic(new_board, goal, move, reconstruct_path(predecessors, new_board))
                 #if g[new_board_frozen] > heuristic_cost:
                    # g[new_board_frozen] = heuristic_cost + 8
                     

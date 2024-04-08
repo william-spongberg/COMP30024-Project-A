@@ -55,9 +55,10 @@ def board_distance_to_goal_line(
         for goal_coord in goal_line
     )
 
+MAGIC_NUMBER = 1.1428571428571428 #8/7
 
 def calculate_heuristic(
-    board: dict[Coord, PlayerColor], goal: Coord, move: PlaceAction
+    board: dict[Coord, PlayerColor], goal: Coord, move: PlaceAction, path: list[PlaceAction]
 ):
     """
     Calculate the heuristic of a given move.
@@ -69,14 +70,14 @@ def calculate_heuristic(
         + board_distance_to_goal_line(board, row_line)
         + path_distance_to_goal_line(board, row_line)
         + empty_around_by(board, row_line)
-    )
+    )*MAGIC_NUMBER
     col_heuristic = (
         goal_line_completion(board, col_line)
         + board_distance_to_goal_line(board, col_line)
         + path_distance_to_goal_line(board, col_line)
         + empty_around_by(board, col_line)
-    )
-    return min(row_heuristic, col_heuristic)
+    )*MAGIC_NUMBER
+    return min(row_heuristic, col_heuristic) + path_continuity(path)*MAGIC_NUMBER
 
 
 # experimental heuristics
@@ -149,3 +150,20 @@ def empty_around_by(board: dict[Coord, PlayerColor], goal_line: list[Coord]):
         ):
             return 1
     return 0
+
+def path_continuity(path: list[PlaceAction]):
+    """
+    Calculate the number of consecutive pieces in the path.
+    """
+    consecutive_pieces = 0
+    for i in range(1, len(path)):
+        # Convert sets to lists before accessing by index
+        current_coords = list(path[i].coords)
+        previous_coords = list(path[i - 1].coords)
+        if (
+            abs(current_coords[0].r - previous_coords[-1].r)
+            + abs(current_coords[0].c - previous_coords[-1].c)
+            == 1
+        ):
+            consecutive_pieces += 1
+    return consecutive_pieces
