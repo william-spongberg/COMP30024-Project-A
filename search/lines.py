@@ -4,7 +4,7 @@ BOARD_N = 11
 
 def construct_horizontal_line(coord: Coord, board: dict[Coord, PlayerColor]) -> list[Coord]:
     """
-    Construct a horizontal line for a coord.
+    Construct a horizontal line for a coord, only including empty spaces
     """
     line = []
     for i in range(BOARD_N):
@@ -14,7 +14,7 @@ def construct_horizontal_line(coord: Coord, board: dict[Coord, PlayerColor]) -> 
 
 def construct_vertical_line(coord: Coord, board: dict[Coord, PlayerColor]) -> list[Coord]:
     """
-    Construct a vertical line for a coord.
+    Construct a vertical line for a coord, only including empty spaces
     """
     line = []
     for i in range(BOARD_N):
@@ -39,6 +39,9 @@ def delete_goal_line(board: dict[Coord, PlayerColor], goal_line: list[Coord]) ->
     return board
 
 def delete_filled_lines(board: dict[Coord, PlayerColor]):
+    """
+    Delete filled rows and columns from the board.
+    """
     coords_to_remove = []
     for r in range(BOARD_N):
         row_coords = [Coord(r, c) for c in range(BOARD_N)]
@@ -52,5 +55,4 @@ def delete_filled_lines(board: dict[Coord, PlayerColor]):
             coords_to_remove.extend(col_coords)
     for coord in coords_to_remove:
         board.pop(coord, None)
-        #board[coord] = None
     return board
