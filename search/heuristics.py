@@ -1,3 +1,4 @@
+from statistics import mean
 from .core import PlayerColor, Coord, PlaceAction
 from .lines import construct_horizontal_line, construct_vertical_line
 
@@ -27,21 +28,29 @@ def coord_distance_to_goal_line(board: dict[Coord, PlayerColor], goal: Coord, co
             for goal_coord in col_line
         ),
     )
+    
+def distance_to_all_empty(board: dict[Coord, PlayerColor], goal_line: list[Coord]):
+    return mean(
+        min(abs(coord.r - goal_coord.r) + abs(coord.c - goal_coord.c)
+        for coord in board
+        if board[coord] == PlayerColor.RED)
+        for goal_coord in goal_line if board.get(goal_coord, None) is None
+    )
 
-def distance_to_closest_empty(
+def distance_to_furthest_goal(
     board: dict[Coord, PlayerColor], goal_line: list[Coord]
 ):
     """
-    Calculate the distance of cloest point to the closest goal line coord.
+    Calculate the max distance from a red piece to the furthest goal line coord.
     """
-    return min(
+    return max(
         abs(coord.r - goal_coord.r) + abs(coord.c - goal_coord.c)
         for coord in board
         if board[coord] == PlayerColor.RED
         for goal_coord in goal_line
     )
 
-MAGIC_NUMBER = 1.1428571428571428 #8/7
+MAGIC_NUMBER =  1.1428571428571428 #8/7
 # We tested out the magic number by running the heuristic on test cases and adjusting it to get the best results.
 
 def calculate_heuristic(
@@ -54,16 +63,14 @@ def calculate_heuristic(
     col_line = construct_vertical_line(goal, board)
     row_heuristic = (
         goal_line_completion(board, row_line)
-        + distance_to_closest_empty(board, row_line)
         + distance_to_goal_line(board, row_line)
         + empty_around_by(board, row_line)
-    )*MAGIC_NUMBER
+    )* MAGIC_NUMBER
     col_heuristic = (
         goal_line_completion(board, col_line)
-        + distance_to_closest_empty(board, col_line)
         + distance_to_goal_line(board, col_line)
         + empty_around_by(board, col_line)
-    )*MAGIC_NUMBER
+    ) * MAGIC_NUMBER
     return min(row_heuristic, col_heuristic) + path_continuity(path)*MAGIC_NUMBER
 
 
@@ -109,7 +116,7 @@ def distance_to_goal_line(board: dict[Coord, PlayerColor], goal_line: list[Coord
             for goal_coord in goal_line
             if no_horizontal_obstacles_in_the_way(board, red, goal_coord)
         ),
-        default=float("inf"),
+        default=distance_to_furthest_goal(board, goal_line),
     )
 
     min_c = min(
@@ -120,7 +127,7 @@ def distance_to_goal_line(board: dict[Coord, PlayerColor], goal_line: list[Coord
             for goal_coord in goal_line
             if no_vertical_obstacles_in_the_way(board, red, goal_coord)
         ),
-        default=float("inf"),
+        default=distance_to_furthest_goal(board, goal_line)
     )
     return min(min_r, min_c)
 
@@ -135,7 +142,7 @@ def empty_around_by(board: dict[Coord, PlayerColor], goal_line: list[Coord]):
             board.get(Coord(*coord_d), None) == PlayerColor.BLUE
             for coord_d in [coord.up(), coord.down(), coord.left(), coord.right()]
         ):
-            n += 1
+            n += 4
     return n
 
 def path_continuity(path: list[PlaceAction]):

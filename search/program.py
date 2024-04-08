@@ -107,25 +107,25 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction,
                 
                 # if goal coord has been removed from board
                 if goal not in new_board:
-                    print(render_board(new_board, goal, ansi=True))
-                    print(f"Generated nodes: {generated_nodes}")
-                    print(f"Duplicated nodes: {duplicated_nodes}")
+                    # print(render_board(new_board, goal, ansi=True))
+                    # print(f"Generated nodes: {generated_nodes}")
+                    # print(f"Duplicated nodes: {duplicated_nodes}")
                     
                     path = reconstruct_path(predecessors, new_board)
                     
                     # for debug
-                    # result_board = board.copy()
-                    # print(render_board(result_board, goal, ansi=True))
-                    # for action in path[1:-1]:
-                    #     result_board = get_current_board(result_board, action)
-                    #     delete_filled_lines(result_board)
-                    #     print(render_board(result_board, goal, ansi=True))
-                    # result_board = get_current_board(result_board, path[-1])
-                    # print(render_board(result_board, goal, ansi=True))
-                    # delete_filled_lines(result_board)
-                    # print(render_board(result_board, goal, ansi=True))
-                    # print(f"Generated nodes: {generated_nodes}")
-                    # print(f"Duplicated nodes: {duplicated_nodes}")
+                    result_board = board.copy()
+                    print(render_board(result_board, goal, ansi=True))
+                    for action in path[1:-1]:
+                        result_board = get_current_board(result_board, action)
+                        delete_filled_lines(result_board)
+                        print(render_board(result_board, goal, ansi=True))
+                    result_board = get_current_board(result_board, path[-1])
+                    print(render_board(result_board, goal, ansi=True))
+                    delete_filled_lines(result_board)
+                    print(render_board(result_board, goal, ansi=True))
+                    print(f"Generated nodes: {generated_nodes}")
+                    print(f"Duplicated nodes: {duplicated_nodes}")
                     
                     # test tetronimos
                     # empty_board = {}
@@ -149,11 +149,11 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction,
                 heapq.heappush(queue, (f[new_board_frozen], board_id))
                 
                 # print the process for debugging
-                # print(render_board(new_board, goal, ansi=True))
-                # print(f"Generated nodes: {generated_nodes}")
-                # print(f"Duplicated nodes: {duplicated_nodes}")
-                # print(f"Current g: {g[new_board_frozen]}")
-                # print(f"Current h: {heuristic_cost}")
+                print(render_board(new_board, goal, ansi=True))
+                print(f"Generated nodes: {generated_nodes}")
+                print(f"Duplicated nodes: {duplicated_nodes}")
+                print(f"Current g: {g[new_board_frozen]}")
+                print(f"Current h: {heuristic_cost}")
     return None
 
 def reconstruct_path(predecessors: dict, end: dict) -> list[PlaceAction]:
