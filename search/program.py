@@ -127,9 +127,11 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction,
                     
                     # test tetronimos
                     # empty_board = {}
+                    # for piece in tetronimos:
+                    #     print(piece)
                     # for action in tetronimos:
-                    #     center_coord = Coord(5, 5)
-                    #     action = PlaceAction(*[center_coord + coord for coord in action.coords])
+                    #     goal = Coord(5, 5)
+                    #     action = PlaceAction(*[goal + coord for coord in action.coords])
                     #     print(render_board(get_current_board(empty_board, action), goal, ansi=True))
                         
                     return path[1:]  # remove the start move
