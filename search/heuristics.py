@@ -1,11 +1,7 @@
 from .core import PlayerColor, Coord, PlaceAction
 from .lines import construct_horizontal_line, construct_vertical_line
-from statistics import mean
 
 BOARD_N = 11
-
-# TODO: make more efficient heuristic/s
-
 
 def goal_line_completion(board: dict[Coord, PlayerColor], goal_line: list[Coord]):
     """
@@ -13,7 +9,7 @@ def goal_line_completion(board: dict[Coord, PlayerColor], goal_line: list[Coord]
     """
     return sum(1 for coord in goal_line if board.get(coord, None) is None)
 
-
+# used in movement.py
 def coord_distance_to_goal_line(board: dict[Coord, PlayerColor], goal: Coord, coord: Coord):
     """
     Calculate the distance from a coord to the closest goal line coord.
@@ -32,22 +28,12 @@ def coord_distance_to_goal_line(board: dict[Coord, PlayerColor], goal: Coord, co
         ),
     )
 
-
-def board_distance_to_goal_line(
+def distance_to_closest_empty(
     board: dict[Coord, PlayerColor], goal_line: list[Coord]
 ):
     """
-    Calculate the distance of cloest point to the furthest goal line coord.
+    Calculate the distance of cloest point to the closest goal line coord.
     """
-    # return mean(mean(abs(coord.r - goal_coord.r) + abs(coord.c - goal_coord.c)
-    #     for coord in board if board[coord] == PlayerColor.RED)
-    #     for goal_coord in goal_line)
-    # return mean(abs(coord.r - goal_coord.r) + abs(coord.c - goal_coord.c)
-    #     for coord in board if board[coord] == PlayerColor.RED
-    #     for goal_coord in goal_line)
-    # return max(abs(coord.r - goal_coord.r) + abs(coord.c - goal_coord.c)
-    #     for coord in board if board[coord] == PlayerColor.RED
-    #     for goal_coord in goal_line if board.get(goal_coord, None) is None)
     return min(
         abs(coord.r - goal_coord.r) + abs(coord.c - goal_coord.c)
         for coord in board
@@ -56,31 +42,29 @@ def board_distance_to_goal_line(
     )
 
 MAGIC_NUMBER = 1.1428571428571428 #8/7
+# We tested out the magic number by running the heuristic on test cases and adjusting it to get the best results.
 
 def calculate_heuristic(
-    board: dict[Coord, PlayerColor], goal: Coord, move: PlaceAction, path: list[PlaceAction]
+    board: dict[Coord, PlayerColor], goal: Coord, path: list[PlaceAction]
 ):
     """
-    Calculate the heuristic of a given move.
+    Calculate the heuristic of a given move. Calculate both possible goal lines and return the minimum.
     """
     row_line = construct_horizontal_line(goal, board)
     col_line = construct_vertical_line(goal, board)
     row_heuristic = (
         goal_line_completion(board, row_line)
-        + board_distance_to_goal_line(board, row_line)
-        + path_distance_to_goal_line(board, row_line)
+        + distance_to_closest_empty(board, row_line)
+        + distance_to_goal_line(board, row_line)
         + empty_around_by(board, row_line)
     )*MAGIC_NUMBER
     col_heuristic = (
         goal_line_completion(board, col_line)
-        + board_distance_to_goal_line(board, col_line)
-        + path_distance_to_goal_line(board, col_line)
+        + distance_to_closest_empty(board, col_line)
+        + distance_to_goal_line(board, col_line)
         + empty_around_by(board, col_line)
     )*MAGIC_NUMBER
     return min(row_heuristic, col_heuristic) + path_continuity(path)*MAGIC_NUMBER
-
-
-# experimental heuristics
 
 
 def no_horizontal_obstacles_in_the_way(
@@ -111,10 +95,12 @@ def no_vertical_obstacles_in_the_way(
     return True
 
 
-def path_distance_to_goal_line(board: dict[Coord, PlayerColor], goal_line: list[Coord]):
+def distance_to_goal_line(board: dict[Coord, PlayerColor], goal_line: list[Coord]):
     """
-    Calculate the distance from a path to the closest goal line coord.
+    Calculate the distance from a path to the closest exposed goal line coord.
     """
+    
+    # minimal row/column distance from all reds to exposed coords in goal line
     min_r = min(
         (
             abs(red.r - goal_coord.r)
@@ -141,7 +127,7 @@ def path_distance_to_goal_line(board: dict[Coord, PlayerColor], goal_line: list[
 
 def empty_around_by(board: dict[Coord, PlayerColor], goal_line: list[Coord]):
     """
-    Check if there are any empty spaces around a coord.
+    Return empty coords in goal line surrounded by Blue pieces.
     """
     n = 0
     for coord in goal_line:
