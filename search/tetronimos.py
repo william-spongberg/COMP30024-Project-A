@@ -7,15 +7,13 @@ def get_tetronimos() -> list[PlaceAction]:
     Get all possible tetronimos.
     """
     
-    double_rotation = [        
+    tetronimos = [
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(1, BOARD_N-1), Coord(2, BOARD_N-1)),  # S (S-shape)
         PlaceAction(Coord(BOARD_N-1, 0), Coord(0, 0), Coord(0, BOARD_N-1), Coord(1, BOARD_N-1)),
         
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(1, 1), Coord(2, 1)), # Z (Z-shape)
         PlaceAction(Coord(BOARD_N-1, 0), Coord(0, 0), Coord(0, 1), Coord(1, 1)),
-    ]
-    
-    quad_rotation = [
+        
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(2, 0), Coord(3, 0)),  # I (straight)
         PlaceAction(Coord(BOARD_N-1, 0), Coord(0, 0), Coord(1, 0), Coord(2, 0)),
         
@@ -36,10 +34,7 @@ def get_tetronimos() -> list[PlaceAction]:
     
     # rotate each tetronimo
     rotated_tetronimos = []
-    for tetronimo in double_rotation:
-        for i in range(2):
-            rotated_tetronimos.append(rotate(tetronimo, i))
-    for tetronimo in quad_rotation:
+    for tetronimo in tetronimos:
         for i in range(4):
             rotated_tetronimos.append(rotate(tetronimo, i))
     

@@ -127,12 +127,18 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction,
                     
                     # test tetronimos
                     # empty_board = {}
+                    # visited = set([frozenset(empty_board.items())])
                     # for piece in tetronimos:
                     #     print(piece)
                     # for action in tetronimos:
                     #     goal = Coord(5, 5)
                     #     action = PlaceAction(*[goal + coord for coord in action.coords])
                     #     print(render_board(get_current_board(empty_board, action), goal, ansi=True))
+                        
+                    #     if frozenset(get_current_board(empty_board, action).items()) in visited:
+                    #         print("Duplicate")
+                    #     else:
+                    #         visited.add(frozenset(get_current_board(empty_board, action).items()))
                         
                     return path[1:]  # remove the start move
                 
