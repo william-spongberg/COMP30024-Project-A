@@ -120,6 +120,8 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction,
                         print(render_board(result_board, goal, ansi=True))
                     result_board = get_current_board(result_board, path[-1])
                     print(render_board(result_board, goal, ansi=True))
+                    delete_filled_lines(result_board)
+                    print(render_board(result_board, goal, ansi=True))
                     print(f"Generated nodes: {generated_nodes}")
                     print(f"Duplicated nodes: {duplicated_nodes}")
                     
