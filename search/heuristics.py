@@ -28,14 +28,6 @@ def coord_distance_to_goal_line(board: dict[Coord, PlayerColor], goal: Coord, co
             for goal_coord in col_line
         ),
     )
-    
-def distance_to_all_empty(board: dict[Coord, PlayerColor], goal_line: list[Coord]):
-    return mean(
-        min(abs(coord.r - goal_coord.r) + abs(coord.c - goal_coord.c)
-        for coord in board
-        if board[coord] == PlayerColor.RED)
-        for goal_coord in goal_line if board.get(goal_coord, None) is None
-    )
 
 def distance_to_furthest_goal(
     board: dict[Coord, PlayerColor], goal_line: list[Coord]
