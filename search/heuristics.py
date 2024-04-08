@@ -143,13 +143,14 @@ def empty_around_by(board: dict[Coord, PlayerColor], goal_line: list[Coord]):
     """
     Check if there are any empty spaces around a coord.
     """
+    n = 0
     for coord in goal_line:
         if all(
             board.get(Coord(*coord_d), None) == PlayerColor.BLUE
             for coord_d in [coord.up(), coord.down(), coord.left(), coord.right()]
         ):
-            return 1
-    return 0
+            n += 1
+    return n
 
 def path_continuity(path: list[PlaceAction]):
     """
