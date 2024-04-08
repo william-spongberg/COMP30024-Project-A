@@ -10,15 +10,19 @@ def get_tetronimos() -> list[PlaceAction]:
     tetronimos = [
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(1, BOARD_N-1), Coord(2, BOARD_N-1)),  # S (S-shape)
         PlaceAction(Coord(BOARD_N-1, 0), Coord(0, 0), Coord(0, BOARD_N-1), Coord(1, BOARD_N-1)),
+        # rest repeated in rotation
         
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(1, 1), Coord(2, 1)), # Z (Z-shape)
         PlaceAction(Coord(BOARD_N-1, 0), Coord(0, 0), Coord(0, 1), Coord(1, 1)),
+        # rest repeated in rotation
         
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(2, 0), Coord(3, 0)),  # I (straight)
         PlaceAction(Coord(BOARD_N-1, 0), Coord(0, 0), Coord(1, 0), Coord(2, 0)),
+        # rest repeated in rotation
         
         PlaceAction(Coord(0, 0), Coord(1, 0), Coord(2, 0), Coord(1, 1)),  # T (T-shape)
         PlaceAction(Coord(BOARD_N-1, 0), Coord(0, 0), Coord(1, 0), Coord(0, 1)),
+        PlaceAction(Coord(BOARD_N-2, 0), Coord(BOARD_N-1, 0), Coord(0, 0), Coord(BOARD_N-1, 1)),
         PlaceAction(Coord(BOARD_N-1, BOARD_N-1), Coord(0, BOARD_N-1), Coord(1, BOARD_N-1), Coord(0, 0)),
         
         PlaceAction(Coord(0, 0), Coord(0, 1), Coord(0, 2), Coord(1, 2)),  # L (L-shape)
@@ -57,7 +61,9 @@ def rotate(tetronimo: PlaceAction, times: int) -> PlaceAction:
     return rotated
 
 def get_moves(coord: Coord, tetronimos: list[PlaceAction]) -> list[PlaceAction]:
-    # get all possible tetronimo moves from a given coordinate
+    """
+    get all possible tetronimo moves from a given coordinate
+    """
     list_of_moves = []
     for tetronimo in tetronimos:
         move = [coord + Coord(x, y) for x, y in list(tetronimo.coords)]
