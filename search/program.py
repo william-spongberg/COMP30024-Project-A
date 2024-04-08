@@ -86,7 +86,7 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction,
         current_board = board_dict[current_board_id]
         current_board_frozen = frozenset(current_board.items())
         # find next moves
-        for adjacent_coord in get_valid_adjacents_all_over_the_board(current_board):
+        for adjacent_coord in get_valid_adjacents_all_over_the_board(current_board, goal):
             for move in get_valid_moves(current_board, tetronimos, adjacent_coord):
                 new_board = get_current_board(current_board, move)
                 new_board = delete_filled_lines(new_board)
@@ -134,6 +134,9 @@ def a_search(board: dict[Coord, PlayerColor], start_piece: PlaceAction,
                 
                 # path = reconstruct_path(predecessors, new_board)
                 heuristic_cost = calculate_heuristic(new_board, goal, move)
+                #if g[new_board_frozen] > heuristic_cost:
+                   # g[new_board_frozen] = heuristic_cost + 8
+                    
                 f[new_board_frozen] = g[new_board_frozen] + heuristic_cost
                 heapq.heappush(queue, (f[new_board_frozen], board_id))
                 
