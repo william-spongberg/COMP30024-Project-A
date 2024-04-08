@@ -1,4 +1,4 @@
-from .core import PlayerColor, Coord, PlaceAction, Direction
+from .core import PlayerColor, Coord, PlaceAction
 from .tetronimos import get_moves
 from .heuristics import coord_distance_to_goal_line
 
