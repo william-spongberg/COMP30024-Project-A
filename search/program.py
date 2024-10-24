@@ -565,27 +565,3 @@ def perform_move(
     for coord in move.coords:
         board[coord] = PlayerColor.RED
     return board
-
-
-# check all 19 possible moves, check if valid, if valid, add to list of possible moves
-# for each possible move, calculate the cost of the move
-# edge cost calculated from furthest coord of current to closest coord of next
-# need to create some data structure to represent a piece (4 coords)
-
-# add each coord to piece seperately, using add method (overridden in Coord class)
-
-# find path to goal, then fill in? then back track, filling in first?
-
-"""
-# adjacent goal checking
-for adjacent_coord in get_invalid_adjacents(board, coord):
-    if (adjacent_coord == current_goal):
-        pieces = reconstruct_pieces(reconstruct_path(came_from_coord, current_coord), came_from_piece)
-        # print solution
-        for piece in pieces:
-            perform_move(board, piece)
-        print("\nSOLUTION:")
-        print(render_board(board, current_goal, ansi=True))
-        print(goal_list)
-        return pieces[1:]
-"""
