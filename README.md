@@ -1,10 +1,15 @@
-# COMP30024 Artificial Intelligence, Semester 1 2024
-## Project Part A: Single Player Tetress
+# Project Part A: Single Player Tetress
 
-Runs A* search for the game **Tetress**.
+*Created for COMP30024 Artificial Intelligence in Semester 1 of 2024 for the University of Melbourne.*
 
-**Run program:** python -m search < file.csv
+Python program that runs A* search on the game **Tetress**.
+
+Find details and rules of the assignment [here](/AI_2024_Project_PartA.pdf).
+
+---
+
+| Run program using: python -m search < file.csv
 
 Use terminal that accepts coloured ANSI for best results (e.g. CMD)
 
-Authored by William Spongberg and Gaoyongle Zhang
+**Authored by William Spongberg and Gaoyongle Zhang**
