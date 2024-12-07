@@ -10,6 +10,9 @@ Find details and rules of the assignment [here](/AI_2024_Project_PartA.pdf).
 
 | Run program using: python -m search < file.csv
 
-Use terminal that accepts coloured ANSI for best results (e.g. CMD)
+Use a terminal that accepts coloured ANSI for best results (e.g. CMD)
 
-**Authored by William Spongberg and Gaoyongle Zhang**
+## Team Members
+
+- William Spongberg
+- Gaoyongle Zhang
